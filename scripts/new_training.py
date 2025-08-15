@@ -62,7 +62,8 @@ class AdversarialMNISTDataset(torch.utils.data.Dataset):
             attack_type: Specific attack type to load (optional, if None loads all)
         """
         self.data_dir = Path(data_dir)
-        
+        print("testing")
+        print(self.data_dir, type(data_dir))
         # Find all .pt files in the directory
         if attack_type:
             # Load specific attack type
