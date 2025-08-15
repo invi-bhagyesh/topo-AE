@@ -25,6 +25,7 @@ class TopologicallyRegularizedAutoencoder(AutoencoderModel):
         ae_kwargs = ae_kwargs if ae_kwargs else {}
         toposig_kwargs = toposig_kwargs if toposig_kwargs else {}
         self.topo_sig = TopologicalSignatureDistance(**toposig_kwargs)
+        print("Topological noise addition")
         self.autoencoder = getattr(submodules, autoencoder_model)(**ae_kwargs)
         self.latent_norm = torch.nn.Parameter(data=torch.ones(1),
                                               requires_grad=True)

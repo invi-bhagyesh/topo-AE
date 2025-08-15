@@ -4,6 +4,8 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from .datasets.splitting import split_dataset
 import numpy as np
+from torchsummary import summary
+
 
 class TrainingLoop():
     """Training a model using a dataset."""
@@ -73,6 +75,14 @@ class TrainingLoop():
         optimizer = torch.optim.Adam(
             model.parameters(), lr=learning_rate,
             weight_decay=self.weight_decay)
+
+
+        try:
+            example_input = next(iter(DataLoader(dataset, batch_size=1)))
+            img_sample = example_input[0].to(self.device)
+            summary(model, input_size=img_sample.shape[1:], device=self.device)
+        except Exception as e:
+            print("Could not print model summary:", e)
 
         epoch = 1
         for epoch in range(1, n_epochs+1):
