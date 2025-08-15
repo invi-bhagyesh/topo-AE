@@ -93,7 +93,7 @@ class PersistentHomologyCalculation:
 
 
 class AlephPersistenHomologyCalculation():
-    def __init__(self, compute_cycles, sort_selected):
+    def __init__(self, compute_cycles=True, sort_selected=True):
         """Calculate persistent homology using aleph.
 
         Args:
