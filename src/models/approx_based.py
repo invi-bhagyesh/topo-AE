@@ -46,7 +46,7 @@ class TopologicallyRegularizedAutoencoder(AutoencoderModel):
             Tuple of final_loss, (...loss components...)
 
         """
-        x = x + torch.randn_like(x) * noise_std
+        # x = x + torch.randn_like(x) * noise_std
 
         latent = self.autoencoder.encode(x)
 
