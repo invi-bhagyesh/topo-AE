@@ -53,7 +53,9 @@ def get_instance(name, parameters, _log, **kwargs):
 
     """
     # Capture arguments passed to get_instance and pass to constructor
-    parameters.update(kwargs)
+    # parameters.update(kwargs)
+    parameters = dict(parameters); parameters.update(kwargs)
+
     # Get the mode class
     model_cls = getattr(datasets, name)
 

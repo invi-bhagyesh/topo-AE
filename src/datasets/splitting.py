@@ -2,7 +2,8 @@
 from math import floor
 import numpy as np
 from torch.utils.data import Dataset, Subset, SubsetRandomSampler
-from torch._utils import _accumulate
+# from torch._utils import _accumulate
+from itertools import accumulate as _accumulate
 import torch
 
 
