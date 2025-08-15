@@ -3,7 +3,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from src.topology import PersistentHomologyCalculation #AlephPersistenHomologyCalculation, \
+from src.topology import PersistentHomologyCalculation 
+from src.topology import AlephPersistenHomologyCalculation
 from src.models import submodules
 from src.models.base import AutoencoderModel
 
@@ -33,7 +34,7 @@ class TopologicallyRegularizedAutoencoder(AutoencoderModel):
     @staticmethod
     def _compute_distance_matrix(x, p=2):
         x_flat = x.view(x.size(0), -1)
-        distances = torch.norm(x_flat[:, None] - x_flat, dim=2, p=p)
+        distances = torch.norm(x_flat[:, None] - x_flat, dim=32, p=p)
         return distances
 
     def forward(self, x, noise_std = 0.025):
@@ -126,7 +127,7 @@ class TopologicalSignatureDistance(nn.Module):
         ##    compute_cycles=use_cycles, sort_selected=sort_selected)
         # else:
         print('Using python to compute signatures')
-        self.signature_calculator = PersistentHomologyCalculation()
+        self.signature_calculator = AlephPersistenHomologyCalculation()
 
     def _get_pairings(self, distances):
         pairs_0, pairs_1 = self.signature_calculator(

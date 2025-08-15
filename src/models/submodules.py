@@ -237,7 +237,7 @@ class LinearAE(AutoencoderModel):
 
 class ConvAE_CIFAR(AutoencoderModel):
     """ConvAE architecture for CIFAR."""
-    def __init__(self, latent_linear_dim=2, topo_latent_dim=None):
+    def __init__(self, latent_linear_dim=32, topo_latent_dim=None):
         self.latent_linear_dim = latent_linear_dim
         super().__init__()
         # Input size: [batch, 3, 32, 32]
@@ -618,7 +618,7 @@ class LinearAE_Spheres(AutoencoderModel):
 
 
 class MLPVAE(AutoencoderModel):
-    def __init__(self, input_dim=3, latent_dim=2):
+    def __init__(self, input_dim=3, latent_dim=32):
         super().__init__()
         self.encoder = nn.Sequential(
             nn.Linear(input_dim, 32),
@@ -696,7 +696,7 @@ class DeepVAE(AutoencoderModel):
     """1000-500-250-(2+2)-250-500-1000. 
      DeepAE architecture, but with VAE (therefore 4 latent dims for each 2 means, vars)
     """
-    def __init__(self, input_dims=(1, 28, 28), latent_dim=2):
+    def __init__(self, input_dims=(1, 28, 28), latent_dim=32):
         super().__init__()
         self.input_dims = input_dims
         n_input_dims = np.prod(input_dims)

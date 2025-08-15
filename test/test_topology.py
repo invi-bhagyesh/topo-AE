@@ -21,7 +21,7 @@ class Test0DSignature(unittest.TestCase):
         x, distances = generate_mock_data(n_instances, n_dim)
         al_calc = AlephPersistenHomologyCalculation(
             compute_cycles=False, sort_selected=True)
-        calc = PersistentHomologyCalculation()
+        calc = AlephPersistenHomologyCalculation()
 
         al_sig, _ = al_calc(distances)
         sig, _ = calc(distances)
