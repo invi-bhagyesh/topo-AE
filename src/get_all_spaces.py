@@ -10,6 +10,7 @@ from src.datasets import CIFAR
 from src.datasets import FashionMNIST
 from src.datasets import MNIST
 from src.datasets import Spheres
+from src.datasets import BloodMNIST
 
 from src.evaluation.utils import get_space
 
@@ -44,7 +45,8 @@ if __name__ == '__main__':
         ('CIFAR', CIFAR),
         ('FashionMNIST', FashionMNIST),
         ('MNIST', MNIST),
-        ('Spheres', Spheres)
+        ('Spheres', Spheres),
+        ('BloodMNIST', BloodMNIST)
     ]:
         data, labels = load_data(c)
         save_all(data, labels, name)
