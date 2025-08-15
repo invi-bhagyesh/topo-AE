@@ -43,8 +43,8 @@ def get_space(model, dataloader, mode='latent', device='cuda', seed=42):
         for index, batch in enumerate(dataloader):
             #unpack current batch:
             image, label = batch
-            if device == 'cuda':
-                image = image.cuda(non_blocking=True)
+            image = image.to(device)
+
 
             #feed batch through model:
             latent = model.encode(image)
@@ -87,8 +87,7 @@ def compute_reconstruction_error(dataset, batch_size, model, device):
     reconst_data = []
     for data, label in reconst_dataloader:
         input_data.append(data.cpu().numpy())
-        if device == 'cuda':
-            data = data.cuda()
+        data = data.to(device)
         latent_data = model.encode(data)
         this_reconst = model.decode(latent_data)
         reconst_data.append(this_reconst.detach().cpu().numpy())
