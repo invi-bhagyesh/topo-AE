@@ -13,24 +13,42 @@ import sys
 from pathlib import Path
 
 # Resolve the src directory two levels up from this script
-src_path = Path(__file__).resolve().parent.parent / 'src'
+# src_path = Path(__file__).resolve().parent.parent / 'src'
 
-if not src_path.exists():
-    raise ImportError(f"Could not find src directory at {src_path}")
+# if not src_path.exists():
+#     raise ImportError(f"Could not find src directory at {src_path}")
 
-# Add src to Python path
+# # Add src to Python path
+# sys.path.insert(0, str(src_path))
+
+
+# sys.path.append(str(src_path))
+# try:
+#     from models.approx_based import TopologicallyRegularizedAutoencoder
+#     from models.submodules import DeepAE
+#     from evaluation.utils import get_space
+# except ImportError as e:
+#     print(f"Import error: {e}")
+#     print("Please ensure the src directory is in your Python path")
+#     sys.exit(1)
+
+# Instead of pointing sys.path to src/, point it to src’s parent
+src_path = Path(__file__).resolve().parent.parent  # project root
+if not (src_path / 'src').exists():
+    raise ImportError(f"Could not find src directory at {src_path / 'src'}")
+
+# Add project root to Python path so "src" is a package
 sys.path.insert(0, str(src_path))
 
-
-sys.path.append(str(src_path))
 try:
-    from models.approx_based import TopologicallyRegularizedAutoencoder
-    from models.submodules import DeepAE
-    from evaluation.utils import get_space
+    from src.models.approx_based import TopologicallyRegularizedAutoencoder
+    from src.models.submodules import DeepAE
+    from src.evaluation.utils import get_space
 except ImportError as e:
     print(f"Import error: {e}")
     print("Please ensure the src directory is in your Python path")
     sys.exit(1)
+
 
 from torch.utils.data import DataLoader
 
