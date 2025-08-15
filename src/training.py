@@ -63,7 +63,7 @@ class TrainingLoop():
         n_epochs = self.n_epochs
         batch_size = self.batch_size
         learning_rate = self.learning_rate
-        summary(model, input_size=(3, 32, 32))
+        # summary(model, input_size=(3, 32, 32))
 
         n_instances = len(dataset)
         # TODO: Currently we drop the last batch as it might not evenly divide
