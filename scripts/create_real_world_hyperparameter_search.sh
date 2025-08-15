@@ -23,6 +23,15 @@ python scripts/configs_from_product.py exp.hyperparameter_search \
     --name dummy --set overrides.model__parameters__ae_kwargs__input_dims=${input_dims} \
     --output-pattern ${output_pattern}
 
+python scripts/configs_from_product.py exp.hyperparameter_search \
+    --name model \
+    --set ${ae_models[*]} \
+    --name dataset --set BloodMNIST \
+    --name dummy --set overrides.model__parameters__autoencoder_model=DeepAE \
+    --name dummy --set overrides.model__parameters__ae_kwargs__input_dims=${input_dims} \
+    --output-pattern ${output_pattern}
+
+
 #VAE method:
 python scripts/configs_from_product.py exp.hyperparameter_search \
   --name model \
@@ -39,9 +48,17 @@ python scripts/configs_from_product.py exp.hyperparameter_search \
     --name dummy --set overrides.model__parameters__ae_kwargs__input_dims=${input_dims} \
     --output-pattern ${output_pattern_vae}
 
+python scripts/configs_from_product.py exp.hyperparameter_search \
+    --name model \
+    --set Vanilla \
+    --name dataset --set BloodMNIST \
+    --name dummy --set overrides.model__parameters__autoencoder_model=DeepVAE \
+    --name dummy --set overrides.model__parameters__ae_kwargs__input_dims=${input_dims} \
+    --output-pattern ${output_pattern_vae}
+
 #Classic, non-deep Baselines: 
 python scripts/configs_from_product.py exp.hyperparameter_search \
   --name model \
   --set ${competitor_methods[*]} \
-  --name dataset --set MNIST FashionMNIST CIFAR \
+  --name dataset --set MNIST FashionMNIST CIFAR BloodMNIST\
   --output-pattern ${output_pattern}

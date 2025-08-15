@@ -10,6 +10,10 @@ def Spheres():
 def CIFAR():
     overrides = {'dataset__name': 'CIFAR'}
 
+def BloodMNIST():
+    overrides = {'dataset__name': 'BloodMNIST'}
+
+
 def add_datasets(experiment):
     experiment.named_config(MNIST)
     experiment.named_config(FashionMNIST)

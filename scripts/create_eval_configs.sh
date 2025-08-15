@@ -21,6 +21,8 @@ python scripts/configs_from_product.py exp.train_model \
     experiments/train_model/best_runs/Spheres/TopoRegEdgeSymmetric.json \
     experiments/train_model/best_runs/CIFAR/TopoRegEdgeSymmetric.json \
     experiments/train_model/best_runs/CIFAR/Vanilla.json \
+    experiments/train_model/best_runs/BlooMNIST/TopoRegEdgeSymmetric.json \
+    experiments/train_model/best_runs/BlooMNIST/Vanilla.json \    
   --name rep --set rep1 rep2 rep3 rep4 rep5 \
   --name dummy --set evaluation.active=True \
   --name dummy2 --set evaluation.evaluate_on='test' \
@@ -46,6 +48,9 @@ done
     experiments/fit_competitor/best_runs/CIFAR/TSNE.json \
     experiments/fit_competitor/best_runs/CIFAR/UMAP.json \
     experiments/fit_competitor/best_runs/CIFAR/PCA.json \
+    experiments/fit_competitor/best_runs/BlooMNIST/TSNE.json \
+    experiments/fit_competitor/best_runs/BlooMNIST/UMAP.json \
+    experiments/fit_competitor/best_runs/BlooMNIST/PCA.json \
     experiments/fit_competitor/best_runs/FashionMNIST/TSNE.json \
     experiments/fit_competitor/best_runs/FashionMNIST/PCA.json \
     experiments/fit_competitor/best_runs/FashionMNIST/UMAP.json \

@@ -37,3 +37,10 @@ python scripts/configs_from_product.py exp.hyperparameter_search \
     --name dummy --set overrides.model__parameters__ae_kwargs__input_dims=${input_dims} \
     --output-pattern ${output_pattern}
 
+python scripts/configs_from_product.py exp.hyperparameter_search \
+    --name model \
+    --set ${ae_models[*]} \
+    --name dataset --set BloodMNIST \
+    --name dummy --set overrides.model__parameters__autoencoder_model=LinearAE \
+    --name dummy --set overrides.model__parameters__ae_kwargs__input_dims=${input_dims} \
+    --output-pattern ${output_pattern}
