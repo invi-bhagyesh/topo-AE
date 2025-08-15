@@ -63,6 +63,7 @@ class TrainingLoop():
         n_epochs = self.n_epochs
         batch_size = self.batch_size
         learning_rate = self.learning_rate
+        summary(model, input_size=(3, 32, 32))
 
         n_instances = len(dataset)
         # TODO: Currently we drop the last batch as it might not evenly divide
@@ -77,12 +78,7 @@ class TrainingLoop():
             weight_decay=self.weight_decay)
 
 
-        try:
-            example_input = next(iter(DataLoader(dataset, batch_size=1)))
-            img_sample = example_input[0].to(self.device)
-            summary(model, input_size=img_sample.shape[1:], device=self.device)
-        except Exception as e:
-            print("Could not print model summary:", e)
+
 
         epoch = 1
         for epoch in range(1, n_epochs+1):
