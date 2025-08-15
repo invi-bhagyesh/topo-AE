@@ -39,6 +39,13 @@ def CIFAR():
     }
 
 @ingredient.named_config
+def BloodMNIST():
+    """BloodMNIST dataset."""
+    name = 'BloodMNIST'
+    parameters = {
+    }
+
+@ingredient.named_config
 def Spheres():
     name ='Spheres'
     parameters = {
