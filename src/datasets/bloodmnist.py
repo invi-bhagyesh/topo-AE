@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
-from medmnist import BloodMNIST as _BloodMNIST  # make sure medmnist is installed
+from medmnist import BloodMNIST as _BloodMNIST  
 
 BASEPATH = os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..', '..', 'data'))
