@@ -17,6 +17,10 @@ def setup_paths():
     """Setup Python paths for different environments (Kaggle vs local)."""
     if os.path.exists('/kaggle'):
         print("Running in Kaggle environment")
+        src_path = Path(__file__).resolve().parent.parent
+        if not (src_path / 'src').exists():
+            raise ImportError(f"Could not find src directory at {src_path / 'src'}")
+        sys.path.insert(0, str(src_path))       
         # In Kaggle, you might need to install the package or copy source files
         # For now, we'll assume the source files are available
     else:
