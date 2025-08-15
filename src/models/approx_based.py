@@ -34,7 +34,7 @@ class TopologicallyRegularizedAutoencoder(AutoencoderModel):
     @staticmethod
     def _compute_distance_matrix(x, p=2):
         x_flat = x.view(x.size(0), -1)
-        distances = torch.norm(x_flat[:, None] - x_flat, dim=32, p=p)
+        distances = torch.norm(x_flat[:, None] - x_flat, dim=2, p=p)
         return distances
 
     def forward(self, x, noise_std = 0.025):
