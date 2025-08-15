@@ -337,5 +337,13 @@ def quick_inference_example():
     print("- CSV file with latent representations (2D)")
     print("- NPZ file with latents, labels, original images, and reconstructed images")
 
-if __name__ == "__main__":
-    quick_inference_example()
+# if __name__ == "__main__":
+#     quick_inference_example()
+
+if _name_ == "_main_":
+
+    model_path = "/kaggle/input/mnist_load/pytorch/default/1/model_state.pth"
+    base_data_dir = "/kaggle/input/purification/medmnist/mnist"  # or your actual data directory path
+    output_dir = "/kaggle/working/output"
+    
+    process_all_attacks(model_path, base_data_dir, output_dir)
