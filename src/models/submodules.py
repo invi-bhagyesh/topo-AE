@@ -153,10 +153,10 @@ class DeepAE(AutoencoderModel):
             nn.Linear(500, 250),
             nn.ReLU(True),
             nn.BatchNorm1d(250),
-            nn.Linear(250, 32) # latent dim
+            nn.Linear(250, 64) # latent dim
         )
         self.decoder = nn.Sequential(
-            nn.Linear(32, 250), # latent dim
+            nn.Linear(64, 250), # latent dim
             nn.ReLU(True),
             nn.BatchNorm1d(250),
             nn.Linear(250, 500),
