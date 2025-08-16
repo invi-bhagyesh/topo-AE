@@ -4,4 +4,5 @@ from .mnist import MNIST
 from .fashion_mnist import FashionMNIST
 from .cifar10 import CIFAR
 from .bloodmnist import BloodMNIST
-__all__ = ['Spheres', 'MNIST', 'FashionMNIST', 'CIFAR','BloodMNIST' ]
+from .PBMC import PBMC
+__all__ = ['Spheres', 'MNIST', 'FashionMNIST', 'CIFAR','BloodMNIST', 'PBMC']

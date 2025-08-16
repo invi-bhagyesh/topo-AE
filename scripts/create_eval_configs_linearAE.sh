@@ -11,6 +11,7 @@ python scripts/configs_from_product.py exp.train_model \
     experiments/train_model/best_runs/Spheres/LinearAE-TopoRegEdgeSymmetric.json \
     experiments/train_model/best_runs/CIFAR/LinearAE-TopoRegEdgeSymmetric.json \
     experiments/train_model/best_runs/BloodMNIST/LinearAE-TopoRegEdgeSymmetric.json \
+    experiments/train_model/best_runs/PBMC/LinearAE-TopoRegEdgeSymmetric.json \
 
   --name rep --set rep1 rep2 rep3 rep4 rep5 \
   --name dummy --set evaluation.active=True \
@@ -19,7 +20,7 @@ python scripts/configs_from_product.py exp.train_model \
 
 for r in rep1 rep2 rep3 rep4 rep5;
 do
-    for d in FashionMNIST MNIST Spheres CIFAR BloodMNIST;
+    for d in FashionMNIST MNIST Spheres CIFAR BloodMNIST PBMC;
     do
    mv experiments/train_model/repetitions/$r/experiments/train_model/best_runs/$d/* experiments/train_model/repetitions/$r/$d && rm -r experiments/train_model/repetitions/$r/experiments/train_model/best_runs/$d
     done

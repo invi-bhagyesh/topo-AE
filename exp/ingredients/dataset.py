@@ -23,6 +23,13 @@ def MNIST():
     parameters = {
     }
 
+@ingredient.named_config
+def PBMC():
+    """PBMC dataset."""
+    name = 'PBMC'
+    parameters = {
+    }
+
 
 @ingredient.named_config
 def FashionMNIST():

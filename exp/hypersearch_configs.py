@@ -13,12 +13,18 @@ def CIFAR():
 def BloodMNIST():
     overrides = {'dataset__name': 'BloodMNIST'}
 
+def PBMC():
+    overrides = {'dataset__name': 'PBMC'}
+
 
 def add_datasets(experiment):
     experiment.named_config(MNIST)
     experiment.named_config(FashionMNIST)
     experiment.named_config(Spheres)
     experiment.named_config(CIFAR)
+    experiment.named_config(PBMC)
+    experiment.named_config(BloodMNIST)
+
 
 def Vanilla():
     train_module = 'train_model'
