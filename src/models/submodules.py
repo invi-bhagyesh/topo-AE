@@ -190,7 +190,6 @@ class DeepAE(AutoencoderModel):
 
         """
         latent = self.encode(x)
-        print("Latent shape: changed -> 4")
         x_reconst = self.decode(latent)
         reconst_error = self.reconst_error(x, x_reconst)
         return reconst_error, {'reconstruction_error': reconst_error}
