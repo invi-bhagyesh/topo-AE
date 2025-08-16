@@ -16,7 +16,7 @@ class PBMC(Dataset):
         Args:
             train: not used here, kept for compatibility with MNIST style
         """
-        h5_path = 'topo/topo-AE/src/datasets/PBMC_Granulocyte_10k_Dataset.h5'
+        h5_path = '/kaggle/input/pbmc/pytorch/v1/1/PBMC_Granulocyte_10k_Dataset.h5'
         with h5py.File(h5_path, 'r') as f:
             # Adjust keys depending on your HDF5 structure
             rna = f['rna'][:]
