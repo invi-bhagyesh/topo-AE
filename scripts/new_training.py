@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Kaggle-compatible inference script for pre-trained MNIST Topological Autoencoder on adversarial MNIST datasets"""
+"""Kaggle-compatible inference script for pre-trained MNIST Topological Autoencoder on standard MNIST dataset"""
 
 import torch
 import pandas as pd
@@ -7,38 +7,30 @@ import numpy as np
 import os
 import sys
 from pathlib import Path
-import glob
+import torchvision
+import torchvision.transforms as transforms
+from torch.utils.data import DataLoader
+from tqdm.auto import tqdm
 
-import sys
-from pathlib import Path
+# Path setup for different environments
+def setup_paths():
+    """Setup Python paths for different environments (Kaggle vs local)."""
+    if os.path.exists('/kaggle'):
+        print("Running in Kaggle environment")
+        src_path = Path(__file__).resolve().parent.parent
+        if not (src_path / 'src').exists():
+            raise ImportError(f"Could not find src directory at {src_path / 'src'}")
+        sys.path.insert(0, str(src_path))       
+        # In Kaggle, you might need to install the package or copy source files
+        # For now, we'll assume the source files are available
+    else:
+        print("Running in local environment")
+        src_path = Path(__file__).resolve().parent.parent
+        if not (src_path / 'src').exists():
+            raise ImportError(f"Could not find src directory at {src_path / 'src'}")
+        sys.path.insert(0, str(src_path))
 
-# Resolve the src directory two levels up from this script
-# src_path = Path(__file__).resolve().parent.parent / 'src'
-
-# if not src_path.exists():
-#     raise ImportError(f"Could not find src directory at {src_path}")
-
-# # Add src to Python path
-# sys.path.insert(0, str(src_path))
-
-
-# sys.path.append(str(src_path))
-# try:
-#     from models.approx_based import TopologicallyRegularizedAutoencoder
-#     from models.submodules import DeepAE
-#     from evaluation.utils import get_space
-# except ImportError as e:
-#     print(f"Import error: {e}")
-#     print("Please ensure the src directory is in your Python path")
-#     sys.exit(1)
-
-# Instead of pointing sys.path to src/, point it to src’s parent
-src_path = Path(__file__).resolve().parent.parent  # project root
-if not (src_path / 'src').exists():
-    raise ImportError(f"Could not find src directory at {src_path / 'src'}")
-
-# Add project root to Python path so "src" is a package
-sys.path.insert(0, str(src_path))
+setup_paths()
 
 try:
     from src.models.approx_based import TopologicallyRegularizedAutoencoder
@@ -46,123 +38,79 @@ try:
     from src.evaluation.utils import get_space
 except ImportError as e:
     print(f"Import error: {e}")
-    print("Please ensure the src directory is in your Python path")
+    print("Please ensure the src directory is in your Python path or copy the required modules")
     sys.exit(1)
 
-
-from torch.utils.data import DataLoader
-
-class AdversarialMNISTDataset(torch.utils.data.Dataset):
-    """Dataset class for adversarial MNIST data stored as .pt files."""
+def download_mnist_data(data_dir="./mnist_data", train=True, test=True):
+    """
+    Download MNIST dataset using torchvision.
     
-    def __init__(self, data_dir, attack_type=None):
-        """
-        Args:
-            data_dir: Directory containing .pt files (e.g., "cw strong", "fgsm strong")
-            attack_type: Specific attack type to load (optional, if None loads all)
-        """
-        self.data_dir = Path(data_dir)
-        print("testing")
-        print(self.data_dir, type(data_dir))
-        # Find all .pt files in the directory
-        if attack_type:
-            # Load specific attack type
-            pt_files = list(self.data_dir.glob("*.pt"))
-
-        else:
-            # Load all .pt files
-            pt_files = list(self.data_dir.glob("*.pt"))
-        
-        if not pt_files:
-            raise ValueError(f"No .pt files found in {data_dir}")
-        
-        # Sort files by batch number for consistent ordering
-        pt_files.sort(key=lambda x: int(x.stem.split('_')[1]))
-        
-        print(f"Found {len(pt_files)} .pt files")
-        
-        # Load and concatenate all batches
-        all_data = []
-        all_labels = []
-        
-        for pt_file in pt_files:
-            print(f"Loading {pt_file.name}...")
-            batch_data = torch.load(pt_file, map_location='cpu')
-            
-            # Handle different possible data formats
-            if isinstance(batch_data, dict):
-                # If it's a dictionary with 'data' and 'labels' keys
-                if 'data' in batch_data and 'labels' in batch_data:
-                    data = batch_data['data']
-                    labels = batch_data['labels']
-                elif 'images' in batch_data and 'labels' in batch_data:
-                    data = batch_data['images']
-                    labels = batch_data['labels']
-                else:
-                    # Try to infer the structure
-                    keys = list(batch_data.keys())
-                    print(f"Available keys in {pt_file.name}: {keys}")
-                    # Assume first key is data, second is labels
-                    data = batch_data[keys[0]]
-                    labels = batch_data[keys[1]]
-            elif isinstance(batch_data, (list, tuple)) and len(batch_data) == 2:
-                # If it's a tuple/list of (data, labels)
-                data, labels = batch_data
-            else:
-                # Assume it's just the data tensor
-                data = batch_data
-                # Create dummy labels (you might want to modify this)
-                labels = torch.zeros(data.shape[0])
-            
-            # Convert to numpy if needed
-            if torch.is_tensor(data):
-                data = data.detach().cpu().numpy()
-            if torch.is_tensor(labels):
-                labels = labels.detach().cpu().numpy()
-            
-            all_data.append(data)
-            all_labels.append(labels)
-        
-        # Concatenate all batches
-        self.data = np.concatenate(all_data, axis=0)
-        self.labels = np.concatenate(all_labels, axis=0)
-        
-        # Ensure data is in the right format for MNIST model
-        if len(self.data.shape) == 3:
-            # If (n_samples, height, width), add channel dimension
-            self.data = self.data[:, None, :, :]  # (n_samples, 1, height, width)
-        elif len(self.data.shape) == 2:
-            # If (n_samples, height*width), reshape to (n_samples, 1, height, height)
-            height = int(np.sqrt(self.data.shape[1]))
-            self.data = self.data.reshape(-1, 1, height, height)
-        
-        # Normalize to [-1, 1] range (MNIST normalization)
-        if self.data.max() > 1.0:
-            self.data = self.data / 255.0
-        self.data = 2 * self.data - 1  # Scale to [-1, 1]
-        
-        print(f"Final data shape: {self.data.shape}")
-        print(f"Final labels shape: {self.labels.shape}")
-        print(f"Data range: [{self.data.min():.3f}, {self.data.max():.3f}]")
-        print(f"Unique labels: {np.unique(self.labels)}")
+    Args:
+        data_dir: Directory to save MNIST data
+        train: Whether to download training set
+        test: Whether to download test set
     
-    def __len__(self):
-        return len(self.data)
+    Returns:
+        Dictionary containing datasets
+    """
+    print("Downloading MNIST dataset...")
     
-    def __getitem__(self, idx):
-        return torch.FloatTensor(self.data[idx]), self.labels[idx]
+    # Transform to match the expected input format
+    # MNIST images are normalized to [-1, 1] range to match training
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.5,), (0.5,))  # Normalize to [-1, 1]
+    ])
+    
+    datasets = {}
+    
+    if train:
+        print("Downloading MNIST training set...")
+        train_dataset = torchvision.datasets.MNIST(
+            root=data_dir,
+            train=True,
+            download=True,
+            transform=transform
+        )
+        datasets['train'] = train_dataset
+        print(f"Training set: {len(train_dataset)} samples")
+    
+    if test:
+        print("Downloading MNIST test set...")
+        test_dataset = torchvision.datasets.MNIST(
+            root=data_dir,
+            train=False,
+            download=True,
+            transform=transform
+        )
+        datasets['test'] = test_dataset
+        print(f"Test set: {len(test_dataset)} samples")
+    
+    return datasets
 
-def extract_latents_and_reconstructions(
+def extract_mnist_latents_and_reconstructions(
     model_path,
-    data_dir,
     output_dir,
-    attack_type=None,
-    batch_size=126,  # Same as MNIST config
-    device='cpu'
+    data_dir="./mnist_data",
+    batch_size=126,
+    device='cpu',
+    process_train=True,
+    process_test=True
 ):
-    """Extract both latent representations AND reconstructed images from pre-trained MNIST model on adversarial dataset."""
+    """
+    Extract latent representations and reconstructed images from MNIST dataset.
     
-    print(f"Loading pre-trained MNIST Topological Autoencoder...")
+    Args:
+        model_path: Path to pre-trained model
+        output_dir: Directory to save results
+        data_dir: Directory for MNIST data
+        batch_size: Batch size for processing
+        device: Device to run inference on
+        process_train: Whether to process training set
+        process_test: Whether to process test set
+    """
+    
+    print("Loading pre-trained MNIST Topological Autoencoder...")
     
     # 1. Load pre-trained model with exact MNIST configuration
     model = TopologicallyRegularizedAutoencoder(
@@ -173,179 +121,205 @@ def extract_latents_and_reconstructions(
     
     # Load the trained weights
     print(f"Loading model weights from {model_path}")
-    state_dict = torch.load(model_path, map_location=device)
-    model.load_state_dict(state_dict)
-    model.eval()
+    try:
+        state_dict = torch.load(model_path, map_location=device)
+        model.load_state_dict(state_dict)
+        model.eval()
+        print("Model loaded successfully!")
+    except Exception as e:
+        print(f"Error loading model: {e}")
+        return
     
-    if device == 'cuda':
+    if device == 'cuda' and torch.cuda.is_available():
         model = model.cuda()
+        print("Model moved to CUDA")
+    elif device == 'cuda':
+        print("CUDA requested but not available, using CPU")
+        device = 'cpu'
     
-    # 2. Create dataset and dataloader
-    print(f"Creating dataset from {data_dir}...")
-    dataset = AdversarialMNISTDataset(data_dir, attack_type)
+    # 2. Download MNIST dataset
+    datasets = download_mnist_data(data_dir, train=process_train, test=process_test)
     
-    dataloader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=False,
-        drop_last=False
-    )
+    # Create output directory
+    os.makedirs(output_dir, exist_ok=True)
     
-    # 3. Extract latent representations using existing codebase function
-    print("Extracting latent representations...")
-    latent, labels = get_space(
-        model,
-        dataloader,
-        mode='latent',
-        device=device
-    )
-    
-    print(f"Latent space shape: {latent.shape}")
-    print(f"Labels shape: {labels.shape}")
-    
-    # 4. Extract reconstructed images
-    print("Extracting reconstructed images...")
-    all_reconstructions = []
-    all_original = []
+    # 3. Process each dataset split
+    for split_name, dataset in datasets.items():
+        print(f"\n{'='*60}")
+        print(f"Processing MNIST {split_name} set ({len(dataset)} samples)")
+        print(f"{'='*60}")
+        
+        # Create dataloader
+        dataloader = DataLoader(
+            dataset,
+            batch_size=batch_size,
+            shuffle=False,
+            drop_last=False,
+            num_workers=2 if not os.path.exists('/kaggle') else 0  # No multiprocessing in Kaggle
+        )
+        
+        # Extract latent representations using existing codebase function
+        print("Extracting latent representations...")
+        try:
+            latents, labels = get_space(
+                model,
+                dataloader,
+                mode='latent',
+                device=device
+            )
+            print(f"Latent space shape: {latents.shape}")
+            print(f"Labels shape: {labels.shape}")
+        except Exception as e:
+            print(f"Error extracting latents with get_space: {e}")
+            print("Falling back to manual extraction...")
+            latents, labels = extract_manually(model, dataloader, device)
+        
+        # Extract reconstructed images
+        print("Extracting reconstructed images...")
+        original_images, reconstructed_images = extract_reconstructions(
+            model, dataloader, device
+        )
+        
+        print(f"Original images shape: {original_images.shape}")
+        print(f"Reconstructed images shape: {reconstructed_images.shape}")
+        
+        # Save results in requested format: (clean, reconstructed, label, latent)
+        print("Saving results...")
+        
+        # Save complete data to NPZ in requested format
+        npz_path = os.path.join(output_dir, f"mnist_{split_name}_complete.npz")
+        np.savez_compressed(
+            npz_path,
+            clean=original_images,           # Original/clean images
+            reconstructed=reconstructed_images,  # Reconstructed images
+            label=labels,                    # Labels
+            latent=latents                   # Latent representations
+        )
+        print(f"Saved complete data to {npz_path}")
+        
+        # Also save as separate CSV for latents (for easy analysis)
+        csv_path = os.path.join(output_dir, f"mnist_{split_name}_latents.csv")
+        df = pd.DataFrame(latents)
+        df['label'] = labels
+        df.to_csv(csv_path, index=False)
+        print(f"Saved latents to {csv_path}")
+        
+        # Save reconstruction error statistics
+        mse_per_sample = np.mean((original_images - reconstructed_images) ** 2, axis=(1, 2, 3))
+        stats_path = os.path.join(output_dir, f"mnist_{split_name}_reconstruction_stats.csv")
+        stats_df = pd.DataFrame({
+            'sample_idx': range(len(mse_per_sample)),
+            'label': labels,
+            'mse_reconstruction_error': mse_per_sample
+        })
+        stats_df.to_csv(stats_path, index=False)
+        print(f"Saved reconstruction statistics to {stats_path}")
+        
+        print(f"Successfully processed {split_name} set:")
+        print(f"  - Samples: {len(latents)}")
+        print(f"  - Latent dimension: {latents.shape[1]}")
+        print(f"  - Mean reconstruction MSE: {np.mean(mse_per_sample):.6f}")
+        print(f"  - Std reconstruction MSE: {np.std(mse_per_sample):.6f}")
+        
+        print(f"\nSaved data format:")
+        print(f"  - clean: {original_images.shape} (original images)")
+        print(f"  - reconstructed: {reconstructed_images.shape} (reconstructed images)")
+        print(f"  - label: {labels.shape} (digit labels 0-9)")
+        print(f"  - latent: {latents.shape} (latent representations)")
+
+def extract_manually(model, dataloader, device):
+    """Manually extract latents if get_space function fails."""
+    all_latents = []
+    all_labels = []
     
     model.eval()
     with torch.no_grad():
-        for batch_idx, (images, batch_labels) in enumerate(dataloader):
+        for batch_idx, (images, labels) in enumerate(tqdm(dataloader, desc="Extracting latents")):
             if device == 'cuda':
                 images = images.cuda()
             
-            # Get latent and reconstruction
-            latent_batch = model.encode(images)
-            reconst_batch = model.decode(latent_batch)
+            # Extract latent representation
+            latents = model.encode(images)
+            
+            # Convert to numpy
+            latents_np = latents.detach().cpu().numpy()
+            labels_np = labels.numpy()
+            
+            all_latents.append(latents_np)
+            all_labels.append(labels_np)
+    
+    # Concatenate all batches
+    latents = np.concatenate(all_latents, axis=0)
+    labels = np.concatenate(all_labels, axis=0)
+    
+    return latents, labels
+
+def extract_reconstructions(model, dataloader, device):
+    """Extract original and reconstructed images."""
+    all_originals = []
+    all_reconstructions = []
+    
+    model.eval()
+    with torch.no_grad():
+        for batch_idx, (images, _) in enumerate(tqdm(dataloader, desc="Extracting reconstructions")):
+            if device == 'cuda':
+                images = images.cuda()
+            
+            # Get reconstruction
+            latents = model.encode(images)
+            reconstructions = model.decode(latents)
             
             # Convert to numpy
             images_np = images.detach().cpu().numpy()
-            reconst_np = reconst_batch.detach().cpu().numpy()
+            reconstructions_np = reconstructions.detach().cpu().numpy()
             
-            all_original.append(images_np)
-            all_reconstructions.append(reconst_np)
-            
-            if batch_idx % 10 == 0:
-                print(f"Processed batch {batch_idx}")
+            all_originals.append(images_np)
+            all_reconstructions.append(reconstructions_np)
     
     # Concatenate all batches
-    original_images = np.concatenate(all_original, axis=0)
+    original_images = np.concatenate(all_originals, axis=0)
     reconstructed_images = np.concatenate(all_reconstructions, axis=0)
     
-    print(f"Original images shape: {original_images.shape}")
-    print(f"Reconstructed images shape: {reconstructed_images.shape}")
+    return original_images, reconstructed_images
+
+def main():
+    """Main function for running MNIST inference."""
     
-    # 5. Save everything
-    print("Saving results...")
-    
-    # Create output directory if it doesn't exist (Kaggle compatible)
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # Determine output filename based on attack type
-    if attack_type:
-        base_name = f"adversarial_mnist_{attack_type.replace(' ', '_')}"
+    # Configuration - modify these paths for your setup
+    if os.path.exists('/kaggle'):
+        # Kaggle environment
+        model_path = "/kaggle/input/mnist64/pytorch/default/1/model_64_mnist.pth"
+        output_dir = "/kaggle/working/mnist_inference_output"
+        data_dir = "/kaggle/working/mnist_data"
     else:
-        base_name = "adversarial_mnist_all"
+        # Local environment
+        model_path = "/home/aravinthakshan/Projects/mrm/topological-autoencoders/scripts/model_state.pth"
+        output_dir = "/home/aravinthakshan/Projects/mrm/topological-autoencoders/scripts/mnist_output"
+        data_dir = "./mnist_data"
     
-    # Save to CSV (latents only)
-    csv_path = os.path.join(output_dir, f"{base_name}_latents.csv")
-    df = pd.DataFrame(latent)
-    df['labels'] = labels
-    df.to_csv(csv_path, index=False)
+    # Check if CUDA is available
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(f"Using device: {device}")
     
-    # Save to NPZ (everything: latents, labels, original, reconstructed)
-    npz_path = os.path.join(output_dir, f"{base_name}_complete.npz")
-    np.savez(
-        npz_path,
-        latents=latent,
-        labels=labels,
-        original_images=original_images,
-        reconstructed_images=reconstructed_images
+    # Run inference
+    extract_mnist_latents_and_reconstructions(
+        model_path=model_path,
+        output_dir=output_dir,
+        data_dir=data_dir,
+        batch_size=126,
+        device=device,
+        process_train=True,
+        process_test=True
     )
     
-    print(f"Saved latents to {csv_path}")
-    print(f"Saved complete data to {npz_path}")
-    return latent, labels, original_images, reconstructed_images
+    print(f"\nInference completed! Results saved to {output_dir}")
+    print("\nGenerated files:")
+    print("- mnist_train_complete.npz: Training set with (clean, reconstructed, label, latent)")
+    print("- mnist_test_complete.npz: Test set with (clean, reconstructed, label, latent)")
+    print("- mnist_train_latents.csv: Training set latent representations + labels")
+    print("- mnist_test_latents.csv: Test set latent representations + labels") 
+    print("- mnist_*_reconstruction_stats.csv: Reconstruction error statistics")
 
-def process_all_attacks(
-    model_path,
-    base_data_dir,
-    output_dir="adversarial_mnist_results",
-    device='cpu'
-):
-    """Process all attack types in the base directory."""
-    
-    # Check if model exists
-    if not os.path.exists(model_path):
-        print(f"Error: Model file not found: {model_path}")
-        return
-    
-    # Check if data directory exists
-    if not os.path.exists(base_data_dir):
-        print(f"Error: Data directory not found: {base_data_dir}")
-        return
-    
-    # List available attack types
-    attack_dirs = [d for d in os.listdir(base_data_dir) if os.path.isdir(os.path.join(base_data_dir, d))]
-    print(f"Available attack types: {attack_dirs}")
-    
-    # Process each attack type
-    for attack_type in attack_dirs:
-        attack_data_dir = os.path.join(base_data_dir, attack_type)
-        print(f"\n{'='*50}")
-        print(f"Processing {attack_type}...")
-        print(f"{'='*50}")
-        
-        try:
-            latent, labels, original_images, reconstructed_images = extract_latents_and_reconstructions(
-                model_path=model_path,
-                data_dir=attack_data_dir,
-                output_dir=output_dir,
-                attack_type=attack_type,
-                device=device
-            )
-            
-            print(f"Successfully processed {attack_type}: {len(latent)} samples")
-            print(f"  - Original images: {original_images.shape}")
-            print(f"  - Reconstructed images: {reconstructed_images.shape}")
-            
-        except Exception as e:
-            print(f"Error processing {attack_type}: {e}")
-            continue
-    
-    print(f"\nAll processing completed! Results saved to {output_dir}/")
-
-# Example usage functions for Kaggle notebooks
-def quick_inference_example():
-    """Quick example of how to use the inference script in Kaggle."""
-    
-    # Example paths - modify these for your Kaggle setup
-    model_path = "/home/aravinthakshan/Projects/mrm/topological-autoencoders/scripts/model_state.pth"
-    base_data_dir = "mnist"
-    output_dir = "/home/aravinthakshan/Projects/mrm/topological-autoencoders/scripts/output"
-    
-    print("Example usage:")
-    print(f"model_path = '{model_path}'")
-    print(f"base_data_dir = '{base_data_dir}'")
-    print(f"output_dir = '{output_dir}'")
-    
-    print("\nTo run inference:")
-    print("process_all_attacks(model_path, base_data_dir, output_dir)")
-    
-    print("\nOr for a single attack type:")
-    print("extract_latents_and_reconstructions(model_path, base_data_dir, output_dir, 'cw strong')")
-    
-    print("\nThis will save:")
-    print("- CSV file with latent representations (2D)")
-    print("- NPZ file with latents, labels, original images, and reconstructed images")
-
-# if __name__ == "__main__":
-#     quick_inference_example()
 
 if __name__ == "__main__":
-
-    model_path = "/kaggle/input/mnist_load/pytorch/mnist/2/model_64_mnist.pth"
-    base_data_dir = "/kaggle/input/purification/medmnist/mnist"  # or your actual data directory path
-    output_dir = "/kaggle/working/output"
-    
-    process_all_attacks(model_path, base_data_dir, output_dir)
+    main()
