@@ -153,10 +153,10 @@ class DeepAE(AutoencoderModel):
             nn.Linear(500, 250),
             nn.ReLU(True),
             nn.BatchNorm1d(250),
-            nn.Linear(250, 2)
+            nn.Linear(250, 4) # latent dim
         )
         self.decoder = nn.Sequential(
-            nn.Linear(2, 250),
+            nn.Linear(4, 250), # latent dim
             nn.ReLU(True),
             nn.BatchNorm1d(250),
             nn.Linear(250, 500),
@@ -190,6 +190,7 @@ class DeepAE(AutoencoderModel):
 
         """
         latent = self.encode(x)
+        print("Latent shape: changed -> 4")
         x_reconst = self.decode(latent)
         reconst_error = self.reconst_error(x, x_reconst)
         return reconst_error, {'reconstruction_error': reconst_error}
