@@ -2,9 +2,27 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
+from sklearn.decomposition import PCA
+
+
+# def visualize_latents(latents, labels, save_file=None):
+#     fig, ax = plt.subplots()
+#     ax.set_xlim(xmin=-2.1, xmax=2.1)
+#     ax.set_ylim(ymin=-2.1, ymax=2.1)
+#     ax.set_aspect('equal')
+#     ax.set_title('AE')
+#     ax.scatter(latents[:, 0], latents[:, 1], c=labels,
+#                 cmap=plt.cm.Spectral, s=2., alpha=0.5)
+#     if save_file:
+#         plt.savefig(save_file, dpi=200)
+#         plt.close()
 
 
 def visualize_latents(latents, labels, save_file=None):
+    # if more than 2 dimensions, reduce to 2 with PCA
+    if latents.shape[1] > 2:
+        latents = PCA(n_components=2).fit_transform(latents)
+
     fig, ax = plt.subplots()
     ax.set_xlim(xmin=-2.1, xmax=2.1)
     ax.set_ylim(ymin=-2.1, ymax=2.1)
