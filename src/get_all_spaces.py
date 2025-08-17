@@ -12,7 +12,7 @@ from src.datasets import MNIST
 from src.datasets import Spheres
 from src.datasets import BloodMNIST
 from src.datasets import PBMC
-
+from src.datasets import EMNIST
 from src.evaluation.utils import get_space
 
 
@@ -48,7 +48,8 @@ if __name__ == '__main__':
         ('MNIST', MNIST),
         ('Spheres', Spheres),
         ('BloodMNIST', BloodMNIST),
-        ('PBMC', PBMC)
+        ('PBMC', PBMC),
+        ('EMNIST', EMNIST)
     ]:
         data, labels = load_data(c)
         save_all(data, labels, name)

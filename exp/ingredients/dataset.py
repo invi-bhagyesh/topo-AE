@@ -23,6 +23,14 @@ def MNIST():
     parameters = {
     }
 
+
+@ingredient.named_config
+def EMNIST():
+    """MNIST dataset."""
+    name = 'MNIST'
+    parameters = {
+    }
+
 @ingredient.named_config
 def PBMC():
     """PBMC dataset."""

@@ -1,8 +1,8 @@
 {
-  "batch_size": 82,
+  "batch_size": 68,
   "dataset": {
     "__doc__": "Dataset configuration.",
-    "name": "CIFAR",
+    "name": "MNIST",
     "parameters": {}
   },
   "device": "cuda",
@@ -14,24 +14,17 @@
     "k_max": 200,
     "k_min": 10,
     "k_step": 10,
-    "online_visualization": true,
+    "online_visualization": false,
     "save_latents": true,
     "save_training_latents": false
   },
-  "learning_rate": 0.0003630219213298049,
+  "learning_rate": 0.0062177287784865275,
   "model": {
     "__doc__": "Model configuration.",
     "name": "TopologicallyRegularizedAutoencoder",
     "parameters": {
-      "ae_kwargs": {
-        "input_dims": [
-          3,
-          32,
-          32
-        ]
-      },
-      "autoencoder_model": "DeepVAE",
-      "lam": 1.6280214927932581,
+      "autoencoder_model": "LinearAE",
+      "lam": 0.29073264044806413,
       "toposig_kwargs": {
         "match_edges": "symmetric"
       }
@@ -39,7 +32,7 @@
   },
   "n_epochs": 100,
   "quiet": true,
-  "seed": 448040131,
+  "seed": 185998544,
   "val_size": 0.15,
   "weight_decay": 1e-05
 }
