@@ -137,9 +137,19 @@ class AdversarialMNISTDataset(torch.utils.data.Dataset):
             self.data = self.data.reshape(-1, 1, height, height)
         
         # Normalize to [-1, 1] range (MNIST normalization)
-        if self.data.max() > 1.0:
-            self.data = self.data / 255.0
-        self.data = 2 * self.data - 1  # Scale to [-1, 1]
+        # if self.data.max() > 1.0:
+        #     self.data = self.data / 255.0
+        # self.data = 2 * self.data - 1  # Scale to [-1, 1]
+        # Only normalize if the data looks like raw [0,255]
+        
+        if self.data.max() > 1.0 and self.data.min() >= 0:
+            self.data = self.data / 255.0  # scale to [0,1]
+            self.data = 2 * self.data - 1  # scale to [-1,1]
+        else:
+            # Data was already normalized with mean/std during adversarial generation
+            # → leave it as is
+            pass       
+
         
         print(f"Final data shape: {self.data.shape}")
         print(f"Final labels shape: {self.labels.shape}")
