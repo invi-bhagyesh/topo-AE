@@ -326,11 +326,11 @@ def extract_reconstructions(model, dataloader, device):
 
 def main():
     """Main function for running inference."""
-    dataset_name = "EMNIST"
+    dataset_name = "CIFAR"
     # Configuration - modify these paths for your setup
     if os.path.exists('/kaggle'):
         # Kaggle environment
-        model_path = "/kaggle/input/invi_emnist/pytorch/default/3/model_state.pth"
+        model_path = "/kaggle/input/invi_cifar_256/pytorch/default/1/model_state.pth"
         output_dir = f"/kaggle/working/{dataset_name.lower()}_inference_output"
         data_dir = f"/kaggle/working/{dataset_name.lower()}_data"
     else:
