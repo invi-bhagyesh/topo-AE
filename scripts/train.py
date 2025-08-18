@@ -201,12 +201,16 @@ def extract_latents_and_reconstructions(
                 mode='latent',
                 device=device
             )
+            if dataset_name == "EMNIST":
+                labels = labels - 1
             print(f"Latent space shape: {latents.shape}")
             print(f"Labels shape: {labels.shape}")
         except Exception as e:
             print(f"Error extracting latents with get_space: {e}")
             print("Falling back to manual extraction...")
             latents, labels = extract_manually(model, dataloader, device)
+            if dataset_name == "EMNIST":
+                labels = labels - 1
         
         # Extract reconstructed images
         print("Extracting reconstructed images...")
@@ -286,6 +290,9 @@ def extract_manually(model, dataloader, device):
     # Concatenate all batches
     latents = np.concatenate(all_latents, axis=0)
     labels = np.concatenate(all_labels, axis=0)
+    # Shift EMNIST labels from 1–26 to 0–25
+    if "EMNIST" in dataloader.dataset.__class__.__name__ or "emnist" in str(dataloader.dataset.__class__).lower():
+        labels = labels - 1
     
     return latents, labels
 
