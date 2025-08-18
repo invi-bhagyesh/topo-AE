@@ -141,7 +141,7 @@ class AdversarialMNISTDataset(torch.utils.data.Dataset):
         #     self.data = self.data / 255.0
         # self.data = 2 * self.data - 1  # Scale to [-1, 1]
         # Only normalize if the data looks like raw [0,255]
-        
+
         if self.data.max() > 1.0 and self.data.min() >= 0:
             self.data = self.data / 255.0  # scale to [0,1]
             self.data = 2 * self.data - 1  # scale to [-1,1]
@@ -387,9 +387,9 @@ def quick_inference_example():
 
 if __name__ == "__main__":
 
-    dataset_name = "CIFAR"
-    model_path = "/kaggle/input/invi_cifar_256/pytorch/default/1/model_state.pth"
-    base_data_dir = "/kaggle/input/purification/medmnist/mnist"  # or your actual data directory path
+    dataset_name = "FashionMNIST"
+    model_path = "/kaggle/input/invi_fashionmnist/pytorch/default/4/model_state.pth"
+    base_data_dir = "/kaggle/input/purification/medmnist/fashionmnist"  # or your actual data directory path
     output_dir = "/kaggle/working/output"
     
     process_all_attacks(model_path, base_data_dir, dataset_name,output_dir)
