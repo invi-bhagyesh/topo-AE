@@ -389,7 +389,7 @@ if __name__ == "__main__":
 
     dataset_name = "FashionMNIST"
     model_path = "/kaggle/input/invi_emnist/pytorch/default/3/model_state.pth"
-    base_data_dir = "/kaggle/input/purification/medmnist/enmnist"  # or your actual data directory path
+    base_data_dir = "/kaggle/input/purification/medmnist/emnist"  # or your actual data directory path
     output_dir = "/kaggle/working/output"
     
     process_all_attacks(model_path, base_data_dir, dataset_name,output_dir)
