@@ -388,7 +388,7 @@ def quick_inference_example():
 if __name__ == "__main__":
 
     dataset_name = "CIFAR"
-    model_path = "/kaggle/input/invi_emnist/pytorch/default/5/model_state.pth"
+    model_path = "/kaggle/input/emnist/pytorch/default/1/model_state.pth"
     base_data_dir = "/kaggle/input/purification/medmnist/emnist"  # or your actual data directory path
     output_dir = "/kaggle/working/output"
     
