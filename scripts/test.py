@@ -136,11 +136,26 @@ class AdversarialMNISTDataset(torch.utils.data.Dataset):
             height = int(np.sqrt(self.data.shape[1]))
             self.data = self.data.reshape(-1, 1, height, height)
         
-        # Normalize to [-1, 1] range (MNIST normalization)
-        if self.data.max() > 1.0:
-            self.data = self.data / 255.0
-        self.data = 2 * self.data - 1  # Scale to [-1, 1]
+        # # Normalize to [-1, 1] range (MNIST normalization)
+        # if self.data.max() > 1.0:
+        #     self.data = self.data / 255.0
+        # self.data = 2 * self.data - 1  # Scale to [-1, 1]
         
+        # Normalize to [-1, 1] range (MNIST normalization)
+        data_min, data_max = self.data.min(), self.data.max()
+        print(f"Before normalization: min={data_min:.3f}, max={data_max:.3f}")
+
+        if data_max > 1.0:  # e.g., raw pixel values [0,255]
+            self.data = self.data / 255.0
+        elif data_min >= 0.0 and data_max <= 1.0:  # already in [0,1]
+            pass  # leave as is
+        elif data_min < -0.5 and data_max <= 1.0:  # already in [-1,1]
+            pass  # leave as is
+        else:
+            print("⚠️ Unexpected data range, double-check attack preprocessing!")
+
+        self.data = 2 * self.data - 1 if self.data.max() <= 1.0 and self.data.min() >= 0.0 else self.data
+
         print(f"Final data shape: {self.data.shape}")
         print(f"Final labels shape: {self.labels.shape}")
         print(f"Data range: [{self.data.min():.3f}, {self.data.max():.3f}]")
