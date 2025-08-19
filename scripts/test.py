@@ -275,6 +275,20 @@ def extract_latents_and_reconstructions(
     
     print(f"Original images shape: {original_images.shape}")
     print(f"Reconstructed images shape: {reconstructed_images.shape}")
+    import matplotlib.pyplot as plt
+    # Visualize a few original and reconstructed pairs
+    num_samples = 5
+    fig, axes = plt.subplots(2, num_samples, figsize=(12, 5))
+    for i in range(num_samples):
+        axes[0, i].imshow((original_images[i,0] + 1) / 2, cmap="gray")
+        axes[0, i].set_title(f"Orig {i}")
+        axes[0, i].axis("off")
+        
+        axes[1, i].imshow((reconstructed_images[i,0] + 1) / 2, cmap="gray")
+        axes[1, i].set_title(f"Recon {i}")
+        axes[1, i].axis("off")
+    plt.tight_layout()
+    plt.show()
     
     # 5. Save everything
     print("Saving results...")
