@@ -136,11 +136,10 @@ class AdversarialMNISTDataset(torch.utils.data.Dataset):
             height = int(np.sqrt(self.data.shape[1]))
             self.data = self.data.reshape(-1, 1, height, height)
         
-        # Normalize to [-1, 1] range (match training preprocessing)
-        if self.data.max() > 1.0:  # raw [0,255]
+        # Normalize to [-1, 1] range (MNIST normalization)
+        if self.data.max() > 1.0:
             self.data = self.data / 255.0
-        if self.data.max() > 0.0:  # [0,1]
-            self.data = 2 * self.data - 1  # scale to [-1,1]
+        self.data = 2 * self.data - 1  # Scale to [-1, 1]
         
         print(f"Final data shape: {self.data.shape}")
         print(f"Final labels shape: {self.labels.shape}")
