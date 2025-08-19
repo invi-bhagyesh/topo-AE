@@ -136,25 +136,26 @@ class AdversarialMNISTDataset(torch.utils.data.Dataset):
             height = int(np.sqrt(self.data.shape[1]))
             self.data = self.data.reshape(-1, 1, height, height)
         
-        # Normalize to [-1, 1] range (MNIST normalization)
-        # if self.data.max() > 1.0:
-        #     self.data = self.data / 255.0
-        # self.data = 2 * self.data - 1  # Scale to [-1, 1]
-        # Only normalize if the data looks like raw [0,255]
-
-        if self.data.max() > 1.0 and self.data.min() >= 0:
-            self.data = self.data / 255.0  # scale to [0,1]
+        # Normalize to [-1, 1] range (match training preprocessing)
+        if self.data.max() > 1.0:  # raw [0,255]
+            self.data = self.data / 255.0
+        if self.data.max() > 0.0:  # [0,1]
             self.data = 2 * self.data - 1  # scale to [-1,1]
-        else:
-            # Data was already normalized with mean/std during adversarial generation
-            # → leave it as is
-            pass       
-
         
         print(f"Final data shape: {self.data.shape}")
         print(f"Final labels shape: {self.labels.shape}")
         print(f"Data range: [{self.data.min():.3f}, {self.data.max():.3f}]")
         print(f"Unique labels: {np.unique(self.labels)}")
+
+        import matplotlib.pyplot as plt
+        # Show a few sample images to verify normalization
+        fig, axes = plt.subplots(1, 5, figsize=(12, 3))
+        for i in range(5):
+            axes[i].imshow((self.data[i,0] + 1) / 2, cmap="gray")
+            axes[i].set_title(f"Label: {int(self.labels[i])}")
+            axes[i].axis("off")
+        plt.tight_layout()
+        plt.show()
     
     def __len__(self):
         return len(self.data)

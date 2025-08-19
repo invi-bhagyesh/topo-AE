@@ -218,9 +218,6 @@ def extract_latents_and_reconstructions(
             model, dataloader, device
         )
         
-        # Rescale from [-1, 1] to [0, 1]
-        original_images = (original_images + 1) / 2
-        reconstructed_images = (reconstructed_images + 1) / 2
 
         print(f"Original images shape (rescaled to [0,1]): {original_images.shape}")
         print(f"Reconstructed images shape (rescaled to [0,1]): {reconstructed_images.shape}")
