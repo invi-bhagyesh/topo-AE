@@ -140,23 +140,28 @@ class AdversarialMNISTDataset(torch.utils.data.Dataset):
         data_min, data_max = self.data.min(), self.data.max()
         print(f"Before normalization: min={data_min:.3f}, max={data_max:.3f}")
 
-        if data_max > 10:
-            # Case 1: raw [0,255]
-            self.data = self.data / 255.0
-        elif 0 <= data_min and data_max <= 1.0:
-            # Case 2: already [0,1]
-            pass
-        elif -1.0 <= data_min and data_max <= 1.0:
-            # Case 3: already [-1,1]
-            pass
-        else:
-            # Case 4: FGSM / CW strange ranges
-            self.data = (self.data - data_min) / (data_max - data_min)
+        def normalize_to_minus1_1(x):
+            x_min, x_max = x.min(), x.max()
+            return 2 * (x - x_min) / (x_max - x_min + 1e-8) - 1
 
-        # Finally ensure [-1,1]
-        if self.data.min() >= 0 and self.data.max() <= 1.0:
-            self.data = 2 * self.data - 1
-        
+        # if data_max > 10:
+        #     # Case 1: raw [0,255]
+        #     self.data = self.data / 255.0
+        # elif 0 <= data_min and data_max <= 1.0:
+        #     # Case 2: already [0,1]
+        #     pass
+        # elif -1.0 <= data_min and data_max <= 1.0:
+        #     # Case 3: already [-1,1]
+        #     pass
+        # else:
+        #     # Case 4: FGSM / CW strange ranges
+        #     self.data = (self.data - data_min) / (data_max - data_min)
+
+        # # Finally ensure [-1,1]
+        # if self.data.min() >= 0 and self.data.max() <= 1.0:
+        #     self.data = 2 * self.data - 1
+        self.data = normalize_to_minus1_1(self.data)
+
         print(f"Final data shape: {self.data.shape}")
         print(f"Final labels shape: {self.labels.shape}")
         print(f"Data range: [{self.data.min():.3f}, {self.data.max():.3f}]")
