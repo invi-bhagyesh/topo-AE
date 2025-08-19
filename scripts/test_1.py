@@ -417,9 +417,9 @@ def quick_inference_example():
 
 if __name__ == "__main__":
 
-    dataset_name = "EMNIST"
-    model_path = "/kaggle/input/invi_emnist/pytorch/default/5/model_state.pth"
-    base_data_dir = "/kaggle/input/purification/medmnist/emnist"  # or your actual data directory path
+    dataset_name = "FashionMNIST"
+    model_path = "/kaggle/input/invi_fashionmnist/pytorch/default/6/model_state.pth"
+    base_data_dir = "/kaggle/input/purification/medmnist/fashionmnist"  # or your actual data directory path
     output_dir = "/kaggle/working/output"
     
     process_all_attacks(model_path, base_data_dir, dataset_name,output_dir)
