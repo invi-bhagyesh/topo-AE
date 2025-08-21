@@ -30,7 +30,7 @@
           100
         ]
       },
-      "autoencoder_model": "DeepAE",
+      "autoencoder_model": "DeepVAE",
       "lam": 1.6280214927932581,
       "toposig_kwargs": {
         "match_edges": "symmetric"

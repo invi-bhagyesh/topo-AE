@@ -696,7 +696,7 @@ class DeepVAE(AutoencoderModel):
     """1000-500-250-(2+2)-250-500-1000. 
      DeepAE architecture, but with VAE (therefore 4 latent dims for each 2 means, vars)
     """
-    def __init__(self, input_dims=(1, 28, 28), latent_dim=256):
+    def __init__(self, input_dims=(1, 28, 28), latent_dim=512):
         super().__init__()
         self.input_dims = input_dims
         n_input_dims = np.prod(input_dims)
