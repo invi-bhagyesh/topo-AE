@@ -13,6 +13,7 @@ from src.datasets import Spheres
 from src.datasets import BloodMNIST
 from src.datasets import PBMC
 from src.datasets import EMNIST
+from src.datasets import SYN
 from src.evaluation.utils import get_space
 
 
