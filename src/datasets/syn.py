@@ -20,13 +20,13 @@ class SYN(Dataset):
         transforms.Normalize((0.5,), (0.5,))
     ])
 
-    def __init__(self, train=True):
+    def __init__(self, test=True):
         """
         Args:
             train (bool): Whether to load the training set or test set.
         """
         # Use subfolders 'train' and 'test' inside BASEPATH
-        self.data_dir = os.path.join(BASEPATH, 'train' if train else 'test')
+        self.data_dir = os.path.join(BASEPATH, 'test')
         self.image_files = os.listdir(self.data_dir)
         self.transform = self.transforms
 
