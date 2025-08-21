@@ -6,7 +6,7 @@ from torchvision import transforms
 
 # Root folder where synthetic dataset is already stored
 BASEPATH = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '..', '..', 'data'))
+    os.path.join(os.path.dirname(__file__), '..', '..', 'src','datasets', 'data'))
 
 
 class SYN(Dataset):
