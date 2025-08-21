@@ -23,8 +23,15 @@
     "__doc__": "Model configuration.",
     "name": "TopologicallyRegularizedAutoencoder",
     "parameters": {
+      "ae_kwargs": {
+        "input_dims": [
+          3,
+          32,
+          100
+        ]
+      },
       "autoencoder_model": "DeepAE",
-      "lam": 0.5002972000959738,
+      "lam": 1.6280214927932581,
       "toposig_kwargs": {
         "match_edges": "symmetric"
       }
