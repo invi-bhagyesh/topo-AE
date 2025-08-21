@@ -20,7 +20,7 @@ class SYN(Dataset):
         transforms.Normalize((0.5,), (0.5,))
     ])
 
-    def __init__(self, test=True):
+    def __init__(self, train=True):
         """
         Args:
             train (bool): Whether to load the training set or test set.
