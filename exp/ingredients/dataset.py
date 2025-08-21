@@ -25,6 +25,15 @@ def MNIST():
 
 
 @ingredient.named_config
+def SYN():
+    """SYN dataset."""
+    name = 'SYN'
+    parameters = {
+    }
+
+
+
+@ingredient.named_config
 def EMNIST():
     """MNIST dataset."""
     name = 'MNIST'
