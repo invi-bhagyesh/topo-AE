@@ -6,4 +6,5 @@ from .cifar10 import CIFAR
 from .bloodmnist import BloodMNIST
 from .PBMC import PBMC
 from .emnist import EMNIST
+from .SYN import SYN
 __all__ = ['Spheres', 'MNIST', 'FashionMNIST', 'CIFAR','BloodMNIST', 'PBMC', 'EMNIST', 'SYN']
