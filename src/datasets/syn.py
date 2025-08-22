@@ -26,7 +26,7 @@ class SYN(Dataset):
             train (bool): Whether to load the training set or test set.
         """
         # Use subfolders 'train' and 'test' inside BASEPATH
-        self.data_dir = os.path.join(BASEPATH, 'test')
+        self.data_dir = os.path.join(BASEPATH, 'out')
         self.image_files = os.listdir(self.data_dir)
         self.transform = self.transforms
 
