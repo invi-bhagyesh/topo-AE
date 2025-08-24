@@ -25,14 +25,31 @@ class SYN(Dataset):
         all_files = os.listdir(self.data_dir)
 
         # Keep only files with correct format
-        self.image_files = [
-            f for f in all_files 
-            if len(f.split('_')) >= 3 and f.split('_')[2].isdigit()
-        ]
+        # self.image_files = [
+        #     f for f in all_files 
+        #     if len(f.split('_')) >= 3 and f.split('_')[2].isdigit()
+        # ]
+        self.image_files = [f for f in all_files if f.endswith(".png")]
+
+
+        sample_img = Image.open(os.path.join(self.data_dir, self.image_files[0]))
+        channels = 3 if sample_img.mode == "RGB" else 1
+
+        all_pixels = []
+        for img_name in self.image_files:
+            img = Image.open(os.path.join(self.data_dir, img_name)).convert("RGB" if channels == 3 else "L")
+            arr = np.array(img, dtype=np.float32) / 255.0
+            if channels == 1:
+                arr = arr[..., None]
+            all_pixels.append(arr.reshape(-1, channels))
+
+        all_pixels = np.concatenate(all_pixels, axis=0)
+        mean = all_pixels.mean(axis=0).tolist()
+        std = all_pixels.std(axis=0).tolist()
 
         self.transform = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize((0.5,), (0.5,))
+            transforms.Normalize(mean, std)
         ])
 
     def __len__(self):
@@ -67,7 +84,7 @@ class SYN(Dataset):
         """Inverse the normalization applied to the original data."""
         return 0.5 * (normalized + 1)
 
-    # def inverse_normalization(self, normalized):
-    #     mean = torch.tensor(self.transform.transforms[1].mean).view(-1,1,1)
-    #     std = torch.tensor(self.transform.transforms[1].std).view(-1,1,1)
-    #     return normalized * std + mean
+    def inverse_normalization(self, normalized):
+        mean = torch.tensor(self.transform.transforms[1].mean).view(-1,1,1)
+        std = torch.tensor(self.transform.transforms[1].std).view(-1,1,1)
+        return normalized * std + mean
