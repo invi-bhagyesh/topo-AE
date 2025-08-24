@@ -24,10 +24,10 @@ class SYN(Dataset):
         self.data_dir = os.path.join(BASEPATH)
         all_files = os.listdir(self.data_dir)
 
-        # Keep only files with index <= 30000 (index is 3rd part in filename)
+        # Keep only files with correct format and index <= 30000
         self.image_files = [
             f for f in all_files 
-            if int(f.split('_')[2]) <= 30000
+            if len(f.split('_')) >= 3 and f.split('_')[2].isdigit() and int(f.split('_')[2]) <= 30000
         ]
 
         sample_img = Image.open(os.path.join(self.data_dir, self.image_files[0]))
