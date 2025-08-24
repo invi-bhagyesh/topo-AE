@@ -4,13 +4,15 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 import numpy as np
+import torch
+
 
 # Root folder where synthetic dataset is already stored
 # BASEPATH = os.path.abspath(
 #     os.path.join(os.path.dirname(__file__), '..', '..', 'src','datasets', 'data', 'characters'))
 
 #change for differnt dataset
-BASEPATH = "/kaggle/input/topo-training-data/train_gen_split"
+BASEPATH = "/kaggle/input/topo-training-data/train_gen_split/train_gen_split"
 
 class SYN(Dataset):
     """Synthetic dataset with images and labels in filenames."""
@@ -24,15 +26,45 @@ class SYN(Dataset):
         self.data_dir = os.path.join(BASEPATH)
         all_files = os.listdir(self.data_dir)
 
-        # Keep only files with correct format
-        self.image_files = [
-            f for f in all_files 
-            if len(f.split('_')) >= 3 and f.split('_')[2].isdigit()
-        ]
+        # # Keep only files with correct format
+        # self.image_files = [
+        #     f for f in all_files 
+        #     if len(f.split('_')) >= 3 and f.split('_')[2].isdigit()
+        # ]
+        self.image_files = [f for f in all_files if f.endswith(".png")]
+        print("Found images:", len(self.image_files))
+        if len(self.image_files) == 0:
+            raise RuntimeError("No images found! Check filtering rules or BASEPATH.")
+
+
+        # sample_img = Image.open(os.path.join(self.data_dir, self.image_files[0]))
+        # channels = 3 if sample_img.mode == "RGB" else 1
+
+        # all_pixels = []
+        # for img_name in self.image_files:
+        #     img = Image.open(os.path.join(self.data_dir, img_name)).convert("RGB" if channels == 3 else "L")
+        #     arr = np.array(img, dtype=np.float32) / 255.0
+        #     if channels == 1:
+        #         arr = arr[..., None]
+        #     all_pixels.append(arr.reshape(-1, channels))
+        #
+        # all_pixels = np.concatenate(all_pixels, axis=0)
+        # mean = all_pixels.mean(axis=0).tolist()
+        # std = all_pixels.std(axis=0).tolist()
+
+        sample_img = Image.open(os.path.join(self.data_dir, self.image_files[0]))
+        channels = 3 if sample_img.mode == "RGB" else 1
+
+        if channels == 3:
+            mean = (0.5, 0.5, 0.5)
+            std = (0.5, 0.5, 0.5)
+        else:
+            mean = (0.5,)
+            std = (0.5,)
 
         self.transform = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize((0.5,), (0.5,))
+            transforms.Normalize(mean, std)
         ])
 
     def __len__(self):
@@ -66,8 +98,3 @@ class SYN(Dataset):
     def inverse_normalization(self, normalized):
         """Inverse the normalization applied to the original data."""
         return 0.5 * (normalized + 1)
-
-    # def inverse_normalization(self, normalized):
-    #     mean = torch.tensor(self.transform.transforms[1].mean).view(-1,1,1)
-    #     std = torch.tensor(self.transform.transforms[1].std).view(-1,1,1)
-    #     return normalized * std + mean
