@@ -4,6 +4,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 import numpy as np
+import torch
 
 # Root folder where synthetic dataset is already stored
 # BASEPATH = os.path.abspath(
