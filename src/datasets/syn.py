@@ -10,7 +10,7 @@ import numpy as np
 #     os.path.join(os.path.dirname(__file__), '..', '..', 'src','datasets', 'data', 'characters'))
 
 #change for differnt dataset
-BASEPATH = "/kaggle/input/invi-protego/train_split_generated/train_split_generated"
+BASEPATH = "/kaggle/input/topo-training-data/train_gen_split"
 
 class SYN(Dataset):
     """Synthetic dataset with images and labels in filenames."""
@@ -61,7 +61,7 @@ class SYN(Dataset):
 
         # Extract label from split filename: "originalWord_index_char.png"
         # 0_pTLTkrRoKu_0_0_p.png
-        # 10000_HxhWHgeFom_10000_0_H.png
+        # 10000_HxhWHgeFom_10000_0_H.png 
         ch = img_name.split('_')[-1].split('.')[0]  # get last character
 
         if ch.islower():
