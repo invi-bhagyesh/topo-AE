@@ -25,12 +25,12 @@
     "parameters": {
       "ae_kwargs": {
         "input_dims": [
-          1,
+          3,
           64,
-          128
+          64
         ]
       },
-      "autoencoder_model": "DeepVAE",
+      "autoencoder_model": "DeepAE",
       "lam": 1.6280214927932581,
       "toposig_kwargs": {
         "match_edges": "symmetric"

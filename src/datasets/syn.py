@@ -5,9 +5,11 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 
 # Root folder where synthetic dataset is already stored
-BASEPATH = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '..', '..', 'src','datasets', 'data'))
+# BASEPATH = os.path.abspath(
+#     os.path.join(os.path.dirname(__file__), '..', '..', 'src','datasets', 'data', 'characters'))
 
+#change for differnt dataset
+BASEPATH = "/kaggle/input/your-dataset-name"
 
 class SYN(Dataset):
     """Synthetic dataset with images and labels in filenames."""
@@ -36,12 +38,13 @@ class SYN(Dataset):
     def __getitem__(self, idx):
         img_name = self.image_files[idx]
         img_path = os.path.join(self.data_dir, img_name)
-        image = Image.open(img_path).convert('RGB')  # convert to 3 channels
+        
+        image = Image.open(img_path).convert('L')  # convert to grayscale
 
-        # Extract label from filename: assuming "index_name_label.png"
-        label = int(img_name.split('_')[-1].split('.')[0])
-
-        if self.transform:
+        # Extract label from split filename: "originalWord_index_char.png"
+        label = img_name.split('_')[-1].split('.')[0]  # get character, e.g., 'u'
+        label = ord(label.lower()) - ord('a')  # convert 'a'-'z' to 0-25
+                if self.transform:
             image = self.transform(image)
 
         return image, label
