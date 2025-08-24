@@ -10,7 +10,7 @@ import numpy as np
 #     os.path.join(os.path.dirname(__file__), '..', '..', 'src','datasets', 'data', 'characters'))
 
 #change for differnt dataset
-BASEPATH = "/kaggle/input/topo-training-data/train_gen_split"
+BASEPATH = "/kaggle/input/topo-training-data/train_gen_split/train_gen_split"
 
 class SYN(Dataset):
     """Synthetic dataset with images and labels in filenames."""
@@ -30,6 +30,10 @@ class SYN(Dataset):
         #     if len(f.split('_')) >= 3 and f.split('_')[2].isdigit()
         # ]
         self.image_files = [f for f in all_files if f.endswith(".png")]
+        print("Found images:", len(self.image_files))
+        if len(self.image_files) == 0:
+            raise RuntimeError("No images found! Check filtering rules or BASEPATH.")
+
 
 
         sample_img = Image.open(os.path.join(self.data_dir, self.image_files[0]))
