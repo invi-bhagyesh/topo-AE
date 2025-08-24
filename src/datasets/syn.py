@@ -22,7 +22,13 @@ class SYN(Dataset):
         """
         # Use subfolders 'train' and 'test' inside BASEPATH
         self.data_dir = os.path.join(BASEPATH, 'out')
-        self.image_files = os.listdir(self.data_dir)
+        all_files = os.listdir(self.data_dir)
+
+        # Keep only files with index <= 30000 (index is 3rd part in filename)
+        self.image_files = [
+            f for f in all_files 
+            if int(f.split('_')[2]) <= 30000
+        ]
 
         sample_img = Image.open(os.path.join(self.data_dir, self.image_files[0]))
         channels = 3 if sample_img.mode == "RGB" else 1
@@ -54,6 +60,8 @@ class SYN(Dataset):
         image = Image.open(img_path).convert("RGB" if len(self.transform.transforms[1].mean) == 3 else "L")
 
         # Extract label from split filename: "originalWord_index_char.png"
+        # 0_pTLTkrRoKu_0_0_p.png
+        # 10000_HxhWHgeFom_10000_0_H.png
         ch = img_name.split('_')[-1].split('.')[0]  # get last character
 
         if ch.islower():
@@ -68,8 +76,7 @@ class SYN(Dataset):
 
         return image, label
     
-    #0_pTLTkrRoKu_0_0_p.png
-    #10000_HxhWHgeFom_10000_0_H.png
+   
 
     def inverse_normalization(self, normalized):
         """Inverse the normalization applied to the original data."""
