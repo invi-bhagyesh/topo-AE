@@ -21,9 +21,9 @@ parser.add_argument('--manualSeed', type=int, default=3407,
                         help='Refer to the settings in paper <Torch. manual_seed (3407) is all you need>')
 parser.add_argument('--train_path', type= str, required=True, help='path of training dataset') 
 parser.add_argument('--test_path', type= str, required=True, help='path of test dataset')
-parser.add_argument('--up_path', type= str, default= "data/protego/up/5.png", 
+parser.add_argument('--up_path', type= str, default= "/kaggle/input/invi_str_model/pytorch/default/9/data/data/protego/up/5.png", 
                         help='path of the pre-processed underpaintings')
-parser.add_argument('--dt_model', type=str, default='models/dbnet++.pth', help='path of our guided network DBnet++')
+parser.add_argument('--dt_model', type=str, default='/kaggle/input/invi_str_model/pytorch/default/9/Dbnet_Model.pth', help='path of our guided network DBnet++')
 parser.add_argument('--batchsize', type= int, default=4, help='batchsize of training ProTegO')
 parser.add_argument('--epochs', type= int, default=60, help='epochs of training ProTegO')
 parser.add_argument('--eps', type=float, default=40/255, help='maximum perturbation')
@@ -38,7 +38,7 @@ parser.add_argument('--use_guide', action='store_true', help='use guided network
 
 """ Model Architecture """
 parser.add_argument('--str_model', type=str, help="path of pretrainted STR models for evaluation",
-                        default='/kaggle/input/invi_str_model/pytorch/default/8/CRNN_VGG_BiLSTM_CTC_model.pth')
+                        default='/kaggle/input/invi_str_model/pytorch/default/9/CRNN_VGG_BiLSTM_CTC_model.pth')
 parser.add_argument('--Transformation', type=str, default='None', help='Transformation stage. None|TPS')
 parser.add_argument('--FeatureExtraction', type=str, default='VGG', help='FeatureExtraction stage. VGG|RCNN|ResNet')
 parser.add_argument('--SequenceModeling', type=str, default='BiLSTM', help='SequenceModeling stage. None|BiLSTM')
