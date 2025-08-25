@@ -189,7 +189,7 @@ class framework():
         # vutils.save_image(up, "{}/up.png".format(loss_path))  # TODO remove when release
         
         print('Loading text detection model from \"%s\" as our guided net!' % self.dt_model)
-        gui_net = torch.load(self.dt_model).to(self.device)
+        gui_net = torch.load(self.dt_model , weights_only=False).to(self.device)
         gui_net.eval()
 
         for epoch in range(1, epochs+1):
