@@ -38,9 +38,9 @@ parser.add_argument('--use_guide', action='store_true', help='use guided network
 
 """ Model Architecture """
 parser.add_argument('--str_model', type=str, help="path of pretrainted STR models for evaluation",
-                        default='/kaggle/input/invi_str_model/pytorch/default/1/STARNet TPS ResNet BiLSTM CTC.pth')
-parser.add_argument('--Transformation', type=str, default='TPS', help='Transformation stage. None|TPS')
-parser.add_argument('--FeatureExtraction', type=str, default='ResNet', help='FeatureExtraction stage. VGG|RCNN|ResNet')
+                        default='/kaggle/input/invi_str_model/pytorch/default/8/CRNN_VGG_BiLSTM_CTC_model.pth')
+parser.add_argument('--Transformation', type=str, default='None', help='Transformation stage. None|TPS')
+parser.add_argument('--FeatureExtraction', type=str, default='VGG', help='FeatureExtraction stage. VGG|RCNN|ResNet')
 parser.add_argument('--SequenceModeling', type=str, default='BiLSTM', help='SequenceModeling stage. None|BiLSTM')
 parser.add_argument('--Prediction', type=str, default='CTC', help='Prediction stage. CTC|Attn')
 parser.add_argument('--num_fiducial', type=int, default=20, help='number of fiducial points of TPS-STN')
