@@ -82,9 +82,9 @@ def gen_underpaintings(opt, device, Generator_path, adv_output_path1, adv_output
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--test_path', type= str, required=True, help='path of font test dataset')
-    parser.add_argument('--up_path', type= str, default='data/protego/up/5.png', help='underpaintings path')
+    parser.add_argument('--up_path', type= str, default='/kaggle/input/invi_str_model/pytorch/default/9/data/data/protego/up/5.png', help='underpaintings path')
     parser.add_argument('--dark', action='store_true', help='use dark background and white text.')
-    parser.add_argument('--dt_model', type=str, default='/models/dbnet++.pth', 
+    parser.add_argument('--dt_model', type=str, default='/kaggle/input/invi_str_model/pytorch/default/9/Dbnet_Model.pth', 
                         help='path of our guided network DBnet++')
     parser.add_argument('--batchsize', type= int, default=4, help='batchsize of training ProTegO')
     parser.add_argument('--epochs', type= int, default=60, help='epochs of training ProTegO')
