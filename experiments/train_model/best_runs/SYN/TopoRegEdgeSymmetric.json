@@ -26,8 +26,8 @@
       "ae_kwargs": {
         "input_dims": [
           3,
-          64,
-          64
+          28,
+          44
         ]
       },
       "autoencoder_model": "DeepAE",
