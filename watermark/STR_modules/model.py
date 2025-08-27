@@ -101,15 +101,12 @@ class FullModel(nn.Module):
     def __init__(self, opt, reformer_ckpt_path=None):
         super().__init__()
         self.opt = opt
-
-        # Load Latent Reformer
+        # Init Latent Reformer
         self.latent_reformer = LatentReformer(in_channels=opt.input_channel)
         if reformer_ckpt_path is not None:
-            reformer_ckpt_path = "/kaggle/input/draft/pytorch/default/2/Model_Weights.pth"
             ckpt = torch.load(reformer_ckpt_path, map_location="cpu")
-            self.latent_reformer.load_state_dict(ckpt)
+            self.latent_reformer.load_state_dict(ckpt, strict=True)
             print(f"Loaded LatentReformer weights from {reformer_ckpt_path}")
-
         # Main OCR Model
         self.ocr_model = Model(opt)
 

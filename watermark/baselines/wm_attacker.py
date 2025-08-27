@@ -77,12 +77,17 @@ class WM_Attacker(object):
         return converter
     @staticmethod
     def _load_model(c_para):
-        if not os.path.exists(c_para.str_model):
+        if not os.path.exists(c_para.str_model): # calling str_model here ( SEARCH )
             raise FileNotFoundError("cannot find pth file in {}".format(c_para.str_model))
         # load model
         with torch.no_grad():
-            model = FullModel(c_para).to(c_para.device)
-            model.load_state_dict(torch.load(c_para.str_model, map_location=c_para.device))
+            # model = FullModel(c_para).to(c_para.device)
+            # model.load_state_dict(torch.load(c_para.str_model, map_location=c_para.device))
+            model = FullModel(c_para, reformer_ckpt_path="/kaggle/input/draft/pytorch/default/2/Model_Weights.pth").to(c_para.device)
+
+            # Load the OCR model weights into the submodule
+            ocr_ckpt = torch.load(c_para.str_model, map_location=c_para.device)
+            model.ocr_model.load_state_dict(ocr_ckpt, strict=True)
         for name, para in model.named_parameters():
             para.requires_grad = False
         return model.eval()
