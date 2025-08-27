@@ -43,8 +43,13 @@ class Model(nn.Module):
         print(f"[INFO] Initializing Model with stages: {self.stages}")
 
         """ Transformation : output is rectified image [batch_size x I_channel_num x I_r_height x I_r_width] """
-        if opt.Transformation == 'TPS':
+        if 'TPS'== 'TPS':
             print("[Stage: Trans] Using TPS_SpatialTransformerNetwork")
+            print("[INFO] Initializing TPS_SpatialTransformerNetwork with parameters:")
+            print(f"   F (num_fiducial): {opt.num_fiducial}")
+            print(f"   I_size: {(opt.imgH, opt.imgW)}")
+            print(f"   I_r_size: {(opt.imgH, opt.imgW)}")
+            print(f"   I_channel_num: {opt.input_channel}")
             self.Transformation = TPS_SpatialTransformerNetwork(
                 F=opt.num_fiducial,
                 I_size=(opt.imgH, opt.imgW),
