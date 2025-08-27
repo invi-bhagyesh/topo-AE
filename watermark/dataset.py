@@ -77,7 +77,7 @@ class test_dataset_builder(Dataset):
         self.total_img_name = img
 
         for img_name in self.total_img_name:
-            print("DEBUG: Current file name:", img_name)
+            # print("DEBUG: Current file name:", img_name)
             
             # Get only filename (strip path)
             base_name = os.path.basename(img_name)   # "1270_adultery_1270.png"
@@ -89,7 +89,7 @@ class test_dataset_builder(Dataset):
                 continue
             
             img_index, label, img_adv = parts
-            print("DEBUG: Parsed values - img_index:", img_index, ", label:", label, ", img_adv:", img_adv)
+            # print("DEBUG: Parsed values - img_index:", img_index, ", label:", label, ", img_adv:", img_adv)
             
             img_adv = img_adv.split('.') 
             index_or_advlogo = img_adv[0]
