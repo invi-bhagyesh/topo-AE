@@ -220,7 +220,7 @@ class WM_Attacker(object):
         generator = GeneratorFromStrings(
             strings=['ecml'],
             count=1, 
-            fonts=['baselines/Impact.ttf'],  # TODO change ['Impact.tff']]
+            fonts=['b/kaggle/working/topo-AE/watermark/baselines/Impact.ttf'],  # TODO change ['Impact.tff']]
             language='en',
             size=78, # default: 32
             skewing_angle=15,
