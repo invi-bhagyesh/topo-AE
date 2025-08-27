@@ -9,7 +9,7 @@ from trdg.generators import GeneratorFromStrings
 from nltk.metrics import edit_distance
 
 from utils import CTCLabelConverter, AttnLabelConverter, RGB2Hex
-from STR_modules.model import Model
+from STR_modules.model import Model, FullModel
 
 r"""
     Base class for fawa.
@@ -81,7 +81,7 @@ class WM_Attacker(object):
             raise FileNotFoundError("cannot find pth file in {}".format(c_para.str_model))
         # load model
         with torch.no_grad():
-            model = Model(c_para).to(c_para.device)
+            model = FullModel(c_para).to(c_para.device)
             model.load_state_dict(torch.load(c_para.str_model, map_location=c_para.device))
         for name, para in model.named_parameters():
             para.requires_grad = False

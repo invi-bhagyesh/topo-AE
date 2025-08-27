@@ -1,9 +1,31 @@
 import torch.nn as nn
-
+import torch
 from .transformation import TPS_SpatialTransformerNetwork
 from .feature_extraction import VGG_FeatureExtractor, ResNet_FeatureExtractor
 from .sequence_modeling import BidirectionalLSTM
 from .prediction import Attention
+
+class LatentReformer(nn.Module):
+    def __init__(self, in_channels=3):
+        super().__init__()
+        self.encoder = nn.Sequential(
+            nn.Conv2d(in_channels, 32, 3, padding=1), nn.BatchNorm2d(32), nn.ReLU(),
+            nn.Conv2d(32, 64, 3, padding=1), nn.BatchNorm2d(64), nn.ReLU(),
+            nn.Conv2d(64, 128, 3, padding=1), nn.BatchNorm2d(128), nn.ReLU(),
+            nn.Conv2d(128, 256, 3, padding=1), nn.BatchNorm2d(256), nn.ReLU()
+        )
+        self.decoder = nn.Sequential(
+            nn.Conv2d(256, 128, 3, padding=1), nn.BatchNorm2d(128), nn.ReLU(),
+            nn.Conv2d(128, 64, 3, padding=1), nn.BatchNorm2d(64), nn.ReLU(),
+            nn.Conv2d(64, 32, 3, padding=1), nn.BatchNorm2d(32), nn.ReLU(),
+            nn.Conv2d(32, in_channels, 3, padding=1), nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        z = self.encoder(x)
+        out = self.decoder(z)
+        return out
+    
 
 
 class Model(nn.Module):
@@ -72,4 +94,29 @@ class Model(nn.Module):
         else:
             prediction = self.Prediction(contextual_feature.contiguous(), text, is_train, batch_max_length=self.opt.batch_max_length)
 
+        return prediction
+
+
+class FullModel(nn.Module):
+    def __init__(self, opt, reformer_ckpt_path=None):
+        super().__init__()
+        self.opt = opt
+
+        # Load Latent Reformer
+        self.latent_reformer = LatentReformer(in_channels=opt.input_channel)
+        if reformer_ckpt_path is not None:
+            reformer_ckpt_path = "/kaggle/input/draft/pytorch/default/1/akshat_reformer.pth"
+            ckpt = torch.load(reformer_ckpt_path, map_location="cpu")
+            self.latent_reformer.load_state_dict(ckpt)
+            print(f"Loaded LatentReformer weights from {reformer_ckpt_path}")
+
+        # Main OCR Model
+        self.ocr_model = Model(opt)
+
+    def forward(self, input, text, is_train=True):
+        # Step 1: Pass through Latent Reformer
+        input = self.latent_reformer(input)
+
+        # Step 2: Pass through OCR model
+        prediction = self.ocr_model(input, text, is_train)
         return prediction
