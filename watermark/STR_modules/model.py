@@ -105,7 +105,7 @@ class FullModel(nn.Module):
         # Load Latent Reformer
         self.latent_reformer = LatentReformer(in_channels=opt.input_channel)
         if reformer_ckpt_path is not None:
-            reformer_ckpt_path = "/kaggle/input/draft/pytorch/default/1/akshat_reformer.pth"
+            reformer_ckpt_path = "/kaggle/input/draft/pytorch/default/2/Model_Weights.pth"
             ckpt = torch.load(reformer_ckpt_path, map_location="cpu")
             self.latent_reformer.load_state_dict(ckpt)
             print(f"Loaded LatentReformer weights from {reformer_ckpt_path}")
