@@ -77,7 +77,8 @@ class test_dataset_builder(Dataset):
         self.total_img_name = img
         
         for img_name in self.total_img_name:
-            # print("DEBUG: Current file name:", img_name)
+            print("DEBUG: Current file name:", img_name)
+            print( img_name.split('_') )
             img_index, label, img_adv = img_name.split('_')  
             img_adv = img_adv.split('.') 
             index_or_advlogo = img_adv[0]
