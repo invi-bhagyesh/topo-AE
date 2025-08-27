@@ -75,14 +75,33 @@ class test_dataset_builder(Dataset):
                 file_name = os.path.join(i ,file)
                 img.append(file_name)
         self.total_img_name = img
-        
+
         for img_name in self.total_img_name:
             print("DEBUG: Current file name:", img_name)
-            img_index, label, img_adv = img_name.split('_')  
+            
+            # Get only filename (strip path)
+            base_name = os.path.basename(img_name)   # "1270_adultery_1270.png"
+            
+            # Now split on "_"
+            parts = base_name.split('_')
+            if len(parts) != 3:
+                print("WARNING: Unexpected filename format:", base_name)
+                continue
+            
+            img_index, label, img_adv = parts
             print("DEBUG: Parsed values - img_index:", img_index, ", label:", label, ", img_adv:", img_adv)
+            
             img_adv = img_adv.split('.') 
             index_or_advlogo = img_adv[0]
             self.dataset.append([img_name, label, img_index, index_or_advlogo])
+        
+        # for img_name in self.total_img_name:
+        #     print("DEBUG: Current file name:", img_name)
+        #     img_index, label, img_adv = img_name.split('_')  
+        #     print("DEBUG: Parsed values - img_index:", img_index, ", label:", label, ", img_adv:", img_adv)
+        #     img_adv = img_adv.split('.') 
+        #     index_or_advlogo = img_adv[0]
+        #     self.dataset.append([img_name, label, img_index, index_or_advlogo])
         self.dataset = sorted(self.dataset)
 
     def __getitem__(self, index):
