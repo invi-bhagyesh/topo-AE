@@ -33,17 +33,26 @@ class Model(nn.Module):
     def __init__(self, opt):
         super(Model, self).__init__()
         self.opt = opt
-        self.stages = {'Trans': opt.Transformation, 'Feat': opt.FeatureExtraction,
-                       'Seq': opt.SequenceModeling, 'Pred': opt.Prediction}
+        self.stages = {
+            'Trans': opt.Transformation,
+            'Feat': opt.FeatureExtraction,
+            'Seq': opt.SequenceModeling,
+            'Pred': opt.Prediction
+        }
+
+        print(f"[INFO] Initializing Model with stages: {self.stages}")
 
         """ Transformation : output is rectified image [batch_size x I_channel_num x I_r_height x I_r_width] """
-        print(opt.Transformation)
-        if 'TPS' == 'TPS':
+        if opt.Transformation == 'TPS':
+            print("[Stage: Trans] Using TPS_SpatialTransformerNetwork")
             self.Transformation = TPS_SpatialTransformerNetwork(
-                F=opt.num_fiducial, I_size=(opt.imgH, opt.imgW), I_r_size=(opt.imgH, opt.imgW), I_channel_num=opt.input_channel)
+                F=opt.num_fiducial,
+                I_size=(opt.imgH, opt.imgW),
+                I_r_size=(opt.imgH, opt.imgW),
+                I_channel_num=opt.input_channel
+            )
         else:
-            print('No Transformation module specified')
-
+            print("[Stage: Trans] No Transformation module specified")
 
         """ FeatureExtraction """
         if opt.FeatureExtraction == 'VGG':
