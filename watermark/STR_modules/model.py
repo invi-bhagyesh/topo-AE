@@ -37,6 +37,7 @@ class Model(nn.Module):
                        'Seq': opt.SequenceModeling, 'Pred': opt.Prediction}
 
         """ Transformation : output is rectified image [batch_size x I_channel_num x I_r_height x I_r_width] """
+        print(opt.Transformation)
         if opt.Transformation == 'TPS':
             self.Transformation = TPS_SpatialTransformerNetwork(
                 F=opt.num_fiducial, I_size=(opt.imgH, opt.imgW), I_r_size=(opt.imgH, opt.imgW), I_channel_num=opt.input_channel)
