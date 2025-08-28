@@ -644,8 +644,9 @@ def extract_latents_and_reconstructions(
     # ])
 
     # Your existing dataset
-    dataset = FlatImageDataset("train_original/train_original")
+    dataset = FlatImageDataset("/kaggle/input/test-adv-splitted/train_original/train_original")
 
+    print("SPlittinggg !!")
     # Complete workflow: split -> create dataset -> extract latents
     character_data, metadata, char_latents, char_labels = process_characters_through_model(
         dataset=dataset,
@@ -658,13 +659,14 @@ def extract_latents_and_reconstructions(
         debug=True
     )
 
+    print("Combingin !!")
     # Optional: Reconstruct original images from processed characters
     if character_data and metadata:
         combined_images = combine_characters(character_data, metadata)
         os.makedirs("reconstructed_originals", exist_ok=True)
         for img_array, filename in combined_images:
             cv2.imwrite(f"reconstructed_originals/{filename}", img_array)
-
+    print("DOne")
     # Create output directory
     os.makedirs(output_dir, exist_ok=True)
     
@@ -816,7 +818,7 @@ def main():
     # Configuration - modify these paths for your setup
     if os.path.exists('/kaggle'):
         # Kaggle environment
-        model_path = "/kaggle/input/fawa_topo_ae/pytorch/default/1/test/runs/1/model_state.pth"
+        model_path = "/kaggle/input/draft/pytorch/default/2/Model_Weights.pth"
         output_dir = f"/kaggle/working/{dataset_name.lower()}_inference_output"
         data_dir = f"/kaggle/working/{dataset_name.lower()}_data"
     else:
