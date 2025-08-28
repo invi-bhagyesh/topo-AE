@@ -4,7 +4,7 @@ from .transformation import TPS_SpatialTransformerNetwork
 from .feature_extraction import VGG_FeatureExtractor, ResNet_FeatureExtractor
 from .sequence_modeling import BidirectionalLSTM
 from .prediction import Attention
-
+#
 class LatentReformer(nn.Module):
     def __init__(self, in_channels=3):
         super().__init__()
