@@ -96,10 +96,10 @@ class ConvolutionalAutoencoder_2D(AutoencoderModel):
             View((-1, 576)),
             nn.Linear(576, 250),
             nn.ReLU(),
-            nn.Linear(250, 2)
+            nn.Linear(250, 256)
         )
         self.decoder = nn.Sequential(
-            nn.Linear(2, 250),
+            nn.Linear(256, 250),
             nn.ReLU(),
             View((-1, 250, 1, 1)),
             nn.ReLU(),
