@@ -117,6 +117,40 @@ def split_characters(dataloader, padding: int = 10, char_size: int = 64, debug: 
         h_orig, w_orig = gray.shape[:2]
         metadata.append(f"ORIGINAL_SIZE {h_orig} {w_orig}")
 
+        # for i, ctr in enumerate(valid_contours):
+        #     x, y, w, h = cv2.boundingRect(ctr)
+        #     if i >= len(label):
+        #         break
+
+        #     char_img = img_color[y:y+h, x:x+w].copy()
+
+        #     # Create white image of size (global_max_h, global_max_w)
+        #     char_canvas = np.full((global_max_h, global_max_w, 3), 255, dtype=np.uint8)
+
+        #     # Compute top-left corner to center the char_img in char_canvas
+        #     y_offset = (global_max_h - h) // 2
+        #     x_offset = (global_max_w - w) // 2
+
+        #     char_canvas[y_offset:y_offset+h, x_offset:x_offset+w] = char_img
+
+        #     # Add 5 pixel padding border around the image
+        #     char_img_padded = cv2.copyMakeBorder(char_canvas, pad, pad, pad, pad, cv2.BORDER_CONSTANT, value=[255,255,255])
+
+        #     char_label = label[i]
+            
+        #     # Add to character dataloader
+        #     character_dataloader.append({
+        #         'image': char_img_padded,
+        #         'filename': f"{filename}_{i}_{char_label}",
+        #         'char_label': char_label,
+        #         'char_index': i,
+        #         'original_filename': filename
+        #     })
+
+        #     # Save global_max_w, global_max_h, and padding in metadata
+        #     metadata.append(f"CHAR {i} {x} {y} {w} {h} {global_max_w} {global_max_h} {pad}")
+        target_h, target_w = 28, 44  # fixed output size for all characters
+
         for i, ctr in enumerate(valid_contours):
             x, y, w, h = cv2.boundingRect(ctr)
             if i >= len(label):
@@ -124,20 +158,35 @@ def split_characters(dataloader, padding: int = 10, char_size: int = 64, debug: 
 
             char_img = img_color[y:y+h, x:x+w].copy()
 
-            # Create white image of size (global_max_h, global_max_w)
-            char_canvas = np.full((global_max_h, global_max_w, 3), 255, dtype=np.uint8)
+            # ---- Compute padding to center into target size ----
+            pad_top = (target_h - h) // 2
+            pad_bottom = target_h - h - pad_top
+            pad_left = (target_w - w) // 2
+            pad_right = target_w - w - pad_left
 
-            # Compute top-left corner to center the char_img in char_canvas
-            y_offset = (global_max_h - h) // 2
-            x_offset = (global_max_w - w) // 2
+            # If the contour is larger than target_h/target_w, resize it down
+            if h > target_h or w > target_w:
+                char_img = cv2.resize(char_img, (min(w, target_w), min(h, target_h)))
+                h, w = char_img.shape[:2]
+                pad_top = (target_h - h) // 2
+                pad_bottom = target_h - h - pad_top
+                pad_left = (target_w - w) // 2
+                pad_right = target_w - w - pad_left
 
-            char_canvas[y_offset:y_offset+h, x_offset:x_offset+w] = char_img
+            # Apply flexible padding to reach exactly (28, 44)
+            char_img_padded = cv2.copyMakeBorder(
+                char_img,
+                pad_top, pad_bottom,
+                pad_left, pad_right,
+                cv2.BORDER_CONSTANT,
+                value=[255, 255, 255]
+            )
 
-            # Add 5 pixel padding border around the image
-            char_img_padded = cv2.copyMakeBorder(char_canvas, pad, pad, pad, pad, cv2.BORDER_CONSTANT, value=[255,255,255])
+            assert char_img_padded.shape[0] == target_h and char_img_padded.shape[1] == target_w, \
+                f"Got {char_img_padded.shape}, expected {(target_h, target_w)}"
 
             char_label = label[i]
-            
+
             # Add to character dataloader
             character_dataloader.append({
                 'image': char_img_padded,
@@ -147,8 +196,8 @@ def split_characters(dataloader, padding: int = 10, char_size: int = 64, debug: 
                 'original_filename': filename
             })
 
-            # Save global_max_w, global_max_h, and padding in metadata
-            metadata.append(f"CHAR {i} {x} {y} {w} {h} {global_max_w} {global_max_h} {pad}")
+            # Save fixed-size metadata
+            metadata.append(f"CHAR {i} {x} {y} {w} {h} {target_w} {target_h} 0")
 
         if debug:
             debug_img = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
