@@ -432,22 +432,89 @@ def split_characters(
     return character_dataloader, all_files_metadata
 
 
-def combine_characters(
-    character_dataloader: List[Dict[str, Any]], 
-    metadata: Dict[str, Any]
-) -> List[Tuple[np.ndarray, str]]:
-    """
-    Recombine characters into original images using stored metadata.
-    """
-    print("Processing character combination...")
+# def combine_characters(
+#     character_dataloader: List[Dict[str, Any]], 
+#     metadata: Dict[str, Any]
+# ) -> List[Tuple[np.ndarray, str]]:
+#     """
+#     Recombine characters into original images using stored metadata.
+#     """
+#     print("Processing character combination...")
 
+#     chars_by_file = {}
+#     for char_data in character_dataloader:
+#         orig_filename = char_data["original_filename"]
+#         base_name = orig_filename.replace(".png", "").replace(".jpg", "")
+#         chars_by_file.setdefault(base_name, []).append(char_data)
+
+#     combined_images = []
+
+#     for base_name, file_metadata in metadata.items():
+#         print(f"Processing {base_name}...")
+#         h_orig, w_orig = file_metadata["original_size"]
+#         combined_img = np.full((h_orig, w_orig, 3), 255, dtype=np.uint8)
+
+#         file_chars = chars_by_file.get(base_name, [])
+
+#         for (idx, x, y, w, h, pad_top, pad_bottom, pad_left, pad_right) in file_metadata["chars"]:
+#             # find the char image
+#             char_img_padded = None
+#             for char_data in file_chars:
+#                 if char_data["char_index"] == idx:
+#                     char_img_padded = char_data["image"]
+#                     break
+#             if char_img_padded is None:
+#                 continue
+
+#             # remove padding
+#             char_img_cropped = char_img_padded[
+#                 pad_top: char_img_padded.shape[0]-pad_bottom,
+#                 pad_left: char_img_padded.shape[1]-pad_right
+#             ]
+
+#             assert char_img_cropped.shape[0] == h and char_img_cropped.shape[1] == w, \
+#                 f"Expected {(h,w)}, got {char_img_cropped.shape[:2]}"
+
+#             combined_img[y:y+h, x:x+w] = char_img_cropped
+
+#         combined_images.append((combined_img, f"{base_name}.png"))
+#         print(f"✅ Combined image: {base_name}.png")
+
+#     print("✅ Done! All images combined back to original form.")
+#     return combined_images
+
+import numpy as np
+import os
+import cv2
+from typing import List, Dict, Any, Tuple
+
+def combine_and_save(
+    character_data: List[Dict[str, Any]], 
+    metadata: Dict[str, Any],
+    char_latents: np.ndarray,
+    char_labels: np.ndarray,
+    output_dir: str,
+    save_name: str = "words_complete.npz"
+):
+    """
+    Recombine characters into original images and group latents/labels per word.
+    Saves results into a single npz file.
+    """
+
+    print("Processing character combination and grouping...")
+
+    # Group characters by original file
     chars_by_file = {}
-    for char_data in character_dataloader:
+    for i, char_data in enumerate(character_data):
         orig_filename = char_data["original_filename"]
-        base_name = orig_filename.replace(".png", "").replace(".jpg", "")
-        chars_by_file.setdefault(base_name, []).append(char_data)
+        base_name = os.path.splitext(orig_filename)[0]
+        chars_by_file.setdefault(base_name, []).append({
+            **char_data,
+            "latent": char_latents[i],
+            "label": char_labels[i]
+        })
 
-    combined_images = []
+    combined_results = {}
 
     for base_name, file_metadata in metadata.items():
         print(f"Processing {base_name}...")
@@ -455,16 +522,18 @@ def combine_characters(
         combined_img = np.full((h_orig, w_orig, 3), 255, dtype=np.uint8)
 
         file_chars = chars_by_file.get(base_name, [])
+        file_chars_sorted = sorted(file_chars, key=lambda c: c["char_index"])  # maintain order
+
+        word_latents = []
+        word_labels = []
+        word_char_labels = []
 
         for (idx, x, y, w, h, pad_top, pad_bottom, pad_left, pad_right) in file_metadata["chars"]:
-            # find the char image
-            char_img_padded = None
-            for char_data in file_chars:
-                if char_data["char_index"] == idx:
-                    char_img_padded = char_data["image"]
-                    break
-            if char_img_padded is None:
+            char_data = next((c for c in file_chars_sorted if c["char_index"] == idx), None)
+            if char_data is None:
                 continue
+
+            char_img_padded = char_data["image"]
 
             # remove padding
             char_img_cropped = char_img_padded[
@@ -477,11 +546,32 @@ def combine_characters(
 
             combined_img[y:y+h, x:x+w] = char_img_cropped
 
-        combined_images.append((combined_img, f"{base_name}.png"))
-        print(f"✅ Combined image: {base_name}.png")
+            # collect char-level info
+            word_latents.append(char_data["latent"])
+            word_labels.append(char_data["label"])
+            word_char_labels.append(char_data["char_label"])
 
-    print("✅ Done! All images combined back to original form.")
-    return combined_images
+        # Construct full word label by concatenating characters
+        full_word_label = "".join(word_char_labels)
+
+        combined_results[base_name] = {
+            "image": combined_img,
+            "latents": np.stack(word_latents) if word_latents else np.array([]),
+            "labels": np.array(word_labels),
+            "char_labels": word_char_labels,
+            "word_label": full_word_label
+        }
+
+        print(f"✅ Combined image: {base_name}.png (word='{full_word_label}')")
+
+    # Save everything to npz
+    os.makedirs(output_dir, exist_ok=True)
+    save_path = os.path.join(output_dir, save_name)
+
+    np.savez_compressed(save_path, **combined_results)
+
+    print(f"✅ Saved grouped word results to {save_path}")
+    return combined_results
 
 
 # Adapter for FlatImageDataset
@@ -898,16 +988,27 @@ def extract_latents_and_reconstructions(
         debug=True
     )
 
-    print("Combingin !!")
+    print("Combining !!")
+
+    # Define the output directory
+    output_dir = "reconstructed_originals"
+    os.makedirs(output_dir, exist_ok=True)
+
     # Optional: Reconstruct original images from processed characters
     if character_data and metadata:
-        combined_images = combine_characters(character_data, metadata)
-        os.makedirs("reconstructed_originals", exist_ok=True)
+        combined_images = combine_and_save(
+            character_data,
+            metadata,
+            char_latents,
+            char_labels,
+            output_dir=output_dir
+        )
+        
         for img_array, filename in combined_images:
-            cv2.imwrite(f"reconstructed_originals/{filename}", img_array)
-    print("DOne")
-    # Create output directory
-    os.makedirs(output_dir, exist_ok=True)
+            cv2.imwrite(os.path.join(output_dir, filename), img_array)
+
+    print("Done")
+
     
     # if True:
     #     # Create dataloader
