@@ -214,7 +214,7 @@ class FullModel(nn.Module):
         
         # Step 2: Combine with script.py
         subprocess.run([
-            "python3", "scripts/split/script.py",
+            "python3", "scripts/split/script_test.py",
             "--mode", "combine",
             "--combine_input", "characters_recon",
             "--combine_output", "reconstructed",
