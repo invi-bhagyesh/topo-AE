@@ -12,7 +12,7 @@ import torch
 #     os.path.join(os.path.dirname(__file__), '..', '..', 'src','datasets', 'data', 'characters'))
 
 #change for differnt dataset
-BASEPATH = "/kaggle/input/test-adv-splitted/train_split"
+BASEPATH = "/kaggle/input/test-adv-splitted/train_split/train_split"
 
 class SYN(Dataset):
     """Synthetic dataset with images and labels in filenames."""
