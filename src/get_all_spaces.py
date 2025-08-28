@@ -50,7 +50,8 @@ if __name__ == '__main__':
         ('Spheres', Spheres),
         ('BloodMNIST', BloodMNIST),
         ('PBMC', PBMC),
-        ('EMNIST', EMNIST)
+        ('EMNIST', EMNIST),
+        ('SYN', SYN)
     ]:
         data, labels = load_data(c)
         save_all(data, labels, name)
