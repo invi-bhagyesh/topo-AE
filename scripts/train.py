@@ -573,8 +573,8 @@ def process_characters_through_model(dataset, model, device, output_dir,
     # Split characters
     character_data, metadata = split_characters(
         create_split_dataloader(dataset), 
-        padding=padding, 
-        char_size=char_size, 
+        # padding=padding, 
+        # char_size=char_size, 
         debug=debug, 
         debug_output_dir=os.path.join(output_dir, "debug_output") if debug else None
     )
