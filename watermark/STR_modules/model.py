@@ -1,3 +1,11 @@
+import os
+import sys
+# Add project root to sys.path (two levels up from the current file)
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+
 import torch.nn as nn
 import torch
 from .transformation import TPS_SpatialTransformerNetwork
