@@ -574,28 +574,6 @@ def combine_and_save(
     return combined_results
 
 
-# Adapter for FlatImageDataset
-class FlatImageDataset(Dataset):
-    def __init__(self, root_dir, transform=None):
-        self.root_dir = root_dir
-        self.image_files = [f for f in os.listdir(root_dir) if f.endswith('.jpg')]
-        self.transform = transform
-
-    def __len__(self):
-        return 10
-        return len(self.image_files)
-
-    def __getitem__(self, idx):
-        img_name = self.image_files[idx]
-        img_path = os.path.join(self.root_dir, img_name)
-        # Load image
-        image = Image.open(img_path).convert("RGB")
-        if self.transform:
-            image = self.transform(image)
-        # Example: dummy label = 0
-        label = 0
-        return image, label
-
 def create_split_dataloader(dataset):
     """
     Adapter function to convert FlatImageDataset to the format needed by split_characters
@@ -845,7 +823,7 @@ import torchvision.transforms as transforms
 class FlatImageDataset(Dataset):
     def __init__(self, root_dir, transform=None):
         self.root_dir = root_dir
-        self.image_files = [f for f in os.listdir(root_dir) if f.endswith('.jpg')]
+        self.image_files = [f for f in os.listdir(root_dir) if f.endswith('.png')]
         self.transform = transform
 
     def __len__(self):
