@@ -182,10 +182,9 @@ class FullModel(nn.Module):
         self.ocr_model = Model(opt)
 
     def forward(self, images, text, is_train=True):
-
         #  Split with script.py
         subprocess.run([
-            "python3", "script_test.py",
+            "python3", "scripts/split/script_test.py",
             "--mode", "split",
             "--split_input", self.data_dir,
             "--split_output", "characters",
@@ -215,7 +214,7 @@ class FullModel(nn.Module):
         
         # Step 2: Combine with script.py
         subprocess.run([
-            "python3", "script.py",
+            "python3", "scripts/split/script.py",
             "--mode", "combine",
             "--combine_input", "characters_recon",
             "--combine_output", "reconstructed",
