@@ -257,7 +257,7 @@ class FlatImageDataset(Dataset):
         self.transform = transform
 
     def __len__(self):
-        return 100
+        return 10
         return len(self.image_files)
 
     def __getitem__(self, idx):
@@ -295,10 +295,13 @@ def create_split_dataloader(dataset):
         yield (image_array, filename, label)
 
 # PyTorch Dataset for Character Data
+from torchvision import transforms
+
+# PyTorch Dataset for Character Data
 class CharacterDataset(Dataset):
     def __init__(self, character_data, transform=None):
         self.character_data = character_data
-        self.transform = transform
+        self.transform = transform or transforms.ToTensor()  # default to tensor
     
     def __len__(self):
         return len(self.character_data)
@@ -309,21 +312,20 @@ class CharacterDataset(Dataset):
         image = cv2.cvtColor(char_info['image'], cv2.COLOR_BGR2RGB)
         image = Image.fromarray(image)
         
-        if self.transform:
-            image = self.transform(image)
-        
-        # Convert character label to numeric (customize as needed)
+        # Apply transform (guaranteed to give tensor)
+        image = self.transform(image)
+
+        # Convert character label to numeric
         char_label = char_info['char_label']
         if char_label.isdigit():
             label = int(char_label)
         elif char_label.isalpha():
-            # Convert letters: A=0, B=1, etc. (uppercase)
             label = ord(char_label.upper()) - ord('A')
         else:
-            # For special characters, you might want a different mapping
-            label = 0  # default
+            label = 0  # fallback for special chars
         
         return image, label
+
 
 # Complete workflow function
 def process_characters_through_model(dataset, model, device, output_dir, 
