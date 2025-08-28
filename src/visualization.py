@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from sklearn.decomposition import PCA
-
+import umap
 
 # def visualize_latents(latents, labels, save_file=None):
 #     fig, ax = plt.subplots()
@@ -20,8 +20,13 @@ from sklearn.decomposition import PCA
 
 def visualize_latents(latents, labels, save_file=None):
     # if more than 2 dimensions, reduce to 2 with PCA
+    # if latents.shape[1] > 2:
+    #     latents = PCA(n_components=2).fit_transform(latents)
+    
     if latents.shape[1] > 2:
-        latents = PCA(n_components=2).fit_transform(latents)
+        reducer = umap.UMAP(n_neighbors=15, min_dist=0.1, metric='euclidean')
+        latents = reducer.fit_transform(latents)
+
 
     fig, ax = plt.subplots()
     ax.set_xlim(xmin=-2.1, xmax=2.1)
