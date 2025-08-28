@@ -123,8 +123,8 @@ def extract_latents_and_reconstructions(
             lam=0.5002972000959738,     # Default MNIST lambda
             toposig_kwargs={'match_edges': 'symmetric'}  # Default MNIST topology
         )
-    elif dataset_name == 'CIFAR':
-        model = TopologicallyRegularizedAutoencoder( 
+    elif dataset_name == 'CIFAR' : # Added dataset parser here 
+        model = TopologicallyRegularizedAutoencoder(  
                         ae_kwargs ={
                     'input_dims': [
                     3,
@@ -138,6 +138,22 @@ def extract_latents_and_reconstructions(
                         "match_edges": "symmetric"
                         }
           )
+    elif dataset_name == 'SYN':
+        model = TopologicallyRegularizedAutoencoder(  
+                        ae_kwargs ={
+                    'input_dims': [
+                    3,
+                    28,
+                    44
+                    ]
+                },
+                    autoencoder_model= "DeepAE",
+                    lam= 1.6280214927932581,
+                    toposig_kwargs= {
+                        "match_edges": "symmetric"
+                        }
+          )
+
     elif dataset_name == 'FashionMNIST':
         model = TopologicallyRegularizedAutoencoder(
             autoencoder_model='DeepAE',
