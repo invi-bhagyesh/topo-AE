@@ -4,6 +4,70 @@ from .transformation import TPS_SpatialTransformerNetwork
 from .feature_extraction import VGG_FeatureExtractor, ResNet_FeatureExtractor
 from .sequence_modeling import BidirectionalLSTM
 from .prediction import Attention
+from src.models.approx_based import TopologicallyRegularizedAutoencoder
+from src.models.submodules import DeepAE
+from src.evaluation.utils import get_space
+from torch.utils.data import DataLoader
+from torchvision import datasets, transforms
+import subprocess
+from glob import glob
+from PIL import Image
+import torchvision.utils as vutils
+import os
+
+class ImageFolder(torch.utils.data.Dataset):
+    def __init__(self, root, transform=None):
+        self.paths = sorted(glob(f"{root}/*.png"))
+        self.transform = transform
+    def __len__(self):
+        return len(self.paths)
+    def __getitem__(self, idx):
+        img = Image.open(self.paths[idx]).convert("RGB")
+        if self.transform:
+            img = self.transform(img)
+        return img, 0
+#####################################################################
+# Topological AE
+
+
+# print(f"Creating dataset from {data_dir}...")
+# dataset = AdversarialMNISTDataset(data_dir, attack_type)
+
+# dataloader = DataLoader(
+#     dataset,
+#     batch_size=batch_size,
+#     shuffle=False,
+#     drop_last=False
+# )
+# # 4. Extract reconstructed images
+# print("Extracting reconstructed images...")
+# all_reconstructions = []
+# all_original = []
+
+# model.eval()
+# with torch.no_grad():
+#     for batch_idx, (images, batch_labels) in enumerate(dataloader):
+#         if device == 'cuda':
+#             images = images.cuda()
+        
+#         # Get latent and reconstruction
+#         latent_batch = model.encode(images)
+#         reconst_batch = model.decode(latent_batch)
+        
+#         # Convert to numpy
+#         images_np = images.detach().cpu().numpy()
+#         reconst_np = reconst_batch.detach().cpu().numpy()
+        
+#         all_original.append(images_np)
+#         all_reconstructions.append(reconst_np)
+        
+#         if batch_idx % 10 == 0:
+#             print(f"Processed batch {batch_idx}")
+# # Concatenate all batches
+# original_images = np.concatenate(all_original, axis=0)
+# reconstructed_images = np.concatenate(all_reconstructions, axis=0)
+#####################################################################
+# Reformer + STR models
 
 class LatentReformer(nn.Module):
     def __init__(self, in_channels=3):
@@ -114,9 +178,29 @@ class Model(nn.Module):
 
 
 class FullModel(nn.Module):
-    def __init__(self, opt, reformer_ckpt_path=None):
+    def __init__(self, opt, reformer_ckpt_path=None, topo_ckpt_path=None,
+                  data_dir="/kaggle/input/invi_str_model/pytorch/default/9/data/data/protego/test", 
+                  device="cuda"):
         super().__init__()
         self.opt = opt
+        self.data_dir = data_dir
+
+        # Init topo model
+        self.topo_model = TopologicallyRegularizedAutoencoder(
+            ae_kwargs={'input_dims': [3, 28, 44]},
+            autoencoder_model="DeepAE",
+            lam=1.6280214927932581,
+            toposig_kwargs={"match_edges": "symmetric"}
+        )
+        if topo_ckpt_path is not None:
+            state_dict = torch.load(topo_ckpt_path, map_location=device)
+            self.topo_model.load_state_dict(state_dict)
+            print(f"Loaded TopoModel weights from {topo_ckpt_path}")
+
+        self.topo_model.eval()
+        if device == "cuda":
+            self.topo_model = self.topo_model.cuda()
+
         # Init Latent Reformer
         self.latent_reformer = LatentReformer(in_channels=opt.input_channel)
         if reformer_ckpt_path is not None:
@@ -126,10 +210,67 @@ class FullModel(nn.Module):
         # Main OCR Model
         self.ocr_model = Model(opt)
 
-    def forward(self, input, text, is_train=True):
-        # Step 1: Pass through Latent Reformer
-        input = self.latent_reformer(input)
+    def forward(self, images, text, is_train=True):
 
-        # Step 2: Pass through OCR model
-        prediction = self.ocr_model(input, text, is_train)
+        #  Split with script.py
+        subprocess.run([
+            "python3", "script_test.py",
+            "--mode", "split",
+            "--split_input", self.data_dir,
+            "--split_output", "characters",
+            "--padding", "5",
+            "--char_size", "64"
+        ])
+        transform = transforms.Compose([
+            transforms.Resize((self.opt.imgH, self.opt.imgW)),
+            transforms.ToTensor()
+        ])
+        dataset = ImageFolder(root="characters", transform=transform)
+        dataloader = DataLoader(dataset, batch_size=self.opt.batch_size, shuffle=False)
+
+
+
+        os.makedirs("characters_recon", exist_ok=True)
+
+        with torch.no_grad():
+            for batch_idx, (char_imgs, _) in enumerate(dataloader):
+                char_imgs = char_imgs.to(next(self.topo_model.parameters()).device)
+                latent = self.topo_model.encode(char_imgs)
+                reconstructed = self.topo_model.decode(latent)
+
+                for j, img_tensor in enumerate(reconstructed):
+                    save_path = f"characters_recon/reconst_{batch_idx}_{j}.png"
+                    vutils.save_image(img_tensor.cpu(), save_path)
+        
+        # Step 2: Combine with script.py
+        subprocess.run([
+            "python3", "script.py",
+            "--mode", "combine",
+            "--combine_input", "characters_recon",
+            "--combine_output", "reconstructed",
+            "--original_input", self.data_dir
+        ])
+
+        
+        # # Step 1: Pass through Latent Reformer
+        # input = self.latent_reformer(reconstructed)
+
+        # # Step 2: Pass through OCR model
+        # prediction = self.ocr_model(input, text, is_train)
+        # return prediction
+
+        # Step 3: Load combined images from reconstructed/
+        dataset_recon = ImageFolder(root="reconstructed", transform=transform)
+        dataloader_recon = DataLoader(dataset_recon, batch_size=self.opt.batch_size, shuffle=False)
+
+        all_predictions = []
+        device = next(self.latent_reformer.parameters()).device
+        for images, _ in dataloader_recon:
+            images = images.to(device)
+            reformer_out = self.latent_reformer(images)
+            preds = self.ocr_model(reformer_out, text, is_train)
+            all_predictions.append(preds)
+
+        # Concatenate into one tensor like earlier
+        prediction = torch.cat(all_predictions, dim=0)
         return prediction
