@@ -257,6 +257,7 @@ class FlatImageDataset(Dataset):
         self.transform = transform
 
     def __len__(self):
+        return 100
         return len(self.image_files)
 
     def __getitem__(self, idx):
