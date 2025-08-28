@@ -149,7 +149,7 @@ class Model(nn.Module):
 
 class FullModel(nn.Module):
     def __init__(self, opt, reformer_ckpt_path=None,
-                 topo_ckpt_path="/kaggle/input/draft/pytorch/default/2/Model_Weights.pth",
+                 topo_ckpt_path="/kaggle/input/fawa_topo_ae/pytorch/default/1/test_runs/1/model_state.pth",
                   data_dir="/kaggle/input/test-adv-splitted/test_original", 
                   device="cuda"):
         super().__init__()
