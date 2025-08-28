@@ -24,180 +24,396 @@ import glob
 import numpy as np
 from typing import List, Dict, Tuple, Any
 
-def split_characters(dataloader, padding: int = 10, char_size: int = 64, debug: bool = False, debug_output_dir: str = None) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
-    """
-    Split character images from dataloader into individual characters.
+# def split_characters(dataloader, padding: int = 10, char_size: int = 64, debug: bool = False, debug_output_dir: str = None) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+#     """
+#     Split character images from dataloader into individual characters.
     
+#     Args:
+#         dataloader: Iterable that yields (image_array, filename, label) tuples
+#         padding: Padding to add around each character
+#         char_size: Uniform size for character images (width and height) 
+#         debug: Save debug images showing detected character boundaries
+#         debug_output_dir: Directory to save debug images (required if debug=True)
+    
+#     Returns:
+#         Tuple of (character_dataloader_list, metadata_dict)
+#         - character_dataloader_list: List of dicts with keys 'image', 'filename', 'char_label', 'char_index'
+#         - metadata_dict: Dictionary containing all metadata needed for combining
+#     """
+    
+#     if debug and debug_output_dir is None:
+#         raise ValueError("debug_output_dir must be provided when debug=True")
+    
+#     if debug:
+#         os.makedirs(debug_output_dir, exist_ok=True)
+    
+#     # Convert dataloader to list for two-pass processing
+#     data_list = list(dataloader)
+    
+#     # First pass: compute global max width and height of all valid contours in dataset
+#     global_max_w = 0
+#     global_max_h = 0
+
+#     for img_array, filename, label in data_list:
+#         # Convert numpy array to opencv format if needed
+#         if len(img_array.shape) == 3 and img_array.shape[2] == 3:
+#             img_color = img_array.astype(np.uint8)
+#         else:
+#             img_color = cv2.cvtColor(img_array.astype(np.uint8), cv2.COLOR_GRAY2BGR)
+            
+#         gray = cv2.cvtColor(img_color, cv2.COLOR_BGR2GRAY)
+
+#         thresh = 255 - gray
+#         _, thresh_bin = cv2.threshold(thresh, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+#         contours, _ = cv2.findContours(thresh_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+#         contours = sorted(contours, key=lambda ctr: cv2.boundingRect(ctr)[0])
+
+#         valid_contours = []
+#         for ctr in contours:
+#             x, y, w, h = cv2.boundingRect(ctr)
+#             if w > 2 and h > 2:
+#                 valid_contours.append(ctr)
+
+#         for i, ctr in enumerate(valid_contours):
+#             if i >= len(label):
+#                 break
+#             x, y, w, h = cv2.boundingRect(ctr)
+#             if w > global_max_w:
+#                 global_max_w = w
+#             if h > global_max_h:
+#                 global_max_h = h
+
+#     print(f"Global max character size determined: width={global_max_w}, height={global_max_h}")
+
+#     pad = 5
+#     character_dataloader = []
+#     all_files_metadata = {}
+
+#     for img_array, filename, label in data_list:
+#         print(f"Processing {filename}...")
+
+#         # Convert numpy array to opencv format if needed
+#         if len(img_array.shape) == 3 and img_array.shape[2] == 3:
+#             img_color = img_array.astype(np.uint8)
+#         else:
+#             img_color = cv2.cvtColor(img_array.astype(np.uint8), cv2.COLOR_GRAY2BGR)
+            
+#         gray = cv2.cvtColor(img_color, cv2.COLOR_BGR2GRAY)
+
+#         thresh = 255 - gray
+#         _, thresh_bin = cv2.threshold(thresh, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+#         contours, _ = cv2.findContours(thresh_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+#         contours = sorted(contours, key=lambda ctr: cv2.boundingRect(ctr)[0])
+
+#         valid_contours = []
+#         for ctr in contours:
+#             x, y, w, h = cv2.boundingRect(ctr)
+#             if w > 2 and h > 2:
+#                 valid_contours.append(ctr)
+
+#         print(f" -> Found {len(valid_contours)} valid contours for '{label}' (expected {len(label)})")
+
+#         metadata = []
+#         h_orig, w_orig = gray.shape[:2]
+#         metadata.append(f"ORIGINAL_SIZE {h_orig} {w_orig}")
+
+#         # for i, ctr in enumerate(valid_contours):
+#         #     x, y, w, h = cv2.boundingRect(ctr)
+#         #     if i >= len(label):
+#         #         break
+
+#         #     char_img = img_color[y:y+h, x:x+w].copy()
+
+#         #     # Create white image of size (global_max_h, global_max_w)
+#         #     char_canvas = np.full((global_max_h, global_max_w, 3), 255, dtype=np.uint8)
+
+#         #     # Compute top-left corner to center the char_img in char_canvas
+#         #     y_offset = (global_max_h - h) // 2
+#         #     x_offset = (global_max_w - w) // 2
+
+#         #     char_canvas[y_offset:y_offset+h, x_offset:x_offset+w] = char_img
+
+#         #     # Add 5 pixel padding border around the image
+#         #     char_img_padded = cv2.copyMakeBorder(char_canvas, pad, pad, pad, pad, cv2.BORDER_CONSTANT, value=[255,255,255])
+
+#         #     char_label = label[i]
+            
+#         #     # Add to character dataloader
+#         #     character_dataloader.append({
+#         #         'image': char_img_padded,
+#         #         'filename': f"{filename}_{i}_{char_label}",
+#         #         'char_label': char_label,
+#         #         'char_index': i,
+#         #         'original_filename': filename
+#         #     })
+
+#         #     # Save global_max_w, global_max_h, and padding in metadata
+#         #     metadata.append(f"CHAR {i} {x} {y} {w} {h} {global_max_w} {global_max_h} {pad}")
+#         target_h, target_w = 28, 44  # fixed output size for all characters
+
+#         for i, ctr in enumerate(valid_contours):
+#             x, y, w, h = cv2.boundingRect(ctr)
+#             if i >= len(label):
+#                 break
+
+#             char_img = img_color[y:y+h, x:x+w].copy()
+
+#             # ---- Compute padding to center into target size ----
+#             pad_top = (target_h - h) // 2
+#             pad_bottom = target_h - h - pad_top
+#             pad_left = (target_w - w) // 2
+#             pad_right = target_w - w - pad_left
+
+#             # If the contour is larger than target_h/target_w, resize it down
+#             if h > target_h or w > target_w:
+#                 char_img = cv2.resize(char_img, (min(w, target_w), min(h, target_h)))
+#                 h, w = char_img.shape[:2]
+#                 pad_top = (target_h - h) // 2
+#                 pad_bottom = target_h - h - pad_top
+#                 pad_left = (target_w - w) // 2
+#                 pad_right = target_w - w - pad_left
+
+#             # Apply flexible padding to reach exactly (28, 44)
+#             char_img_padded = cv2.copyMakeBorder(
+#                 char_img,
+#                 pad_top, pad_bottom,
+#                 pad_left, pad_right,
+#                 cv2.BORDER_CONSTANT,
+#                 value=[255, 255, 255]
+#             )
+
+#             assert char_img_padded.shape[0] == target_h and char_img_padded.shape[1] == target_w, \
+#                 f"Got {char_img_padded.shape}, expected {(target_h, target_w)}"
+
+#             char_label = label[i]
+
+#             # Add to character dataloader
+#             character_dataloader.append({
+#                 'image': char_img_padded,
+#                 'filename': f"{filename}_{i}_{char_label}",
+#                 'char_label': char_label,
+#                 'char_index': i,
+#                 'original_filename': filename
+#             })
+
+#             # Save fixed-size metadata
+#             metadata.append(f"CHAR {i} {x} {y} {w} {h} {target_w} {target_h} 0")
+
+#         if debug:
+#             debug_img = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+#             for i, ctr in enumerate(valid_contours):
+#                 if i < len(label):
+#                     x, y, w, h = cv2.boundingRect(ctr)
+#                     cv2.rectangle(debug_img, (x, y), (x+w, y+h), (0, 255, 0), 1)
+#                     cv2.putText(debug_img, label[i], (x, y-2), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 255), 1)
+#             cv2.imwrite(os.path.join(debug_output_dir, f"debug_{filename}.png"), debug_img)
+
+#         # Store metadata for this file
+#         base_name = filename.replace('.png', '').replace('.jpg', '')
+#         all_files_metadata[base_name] = {
+#             'original_size': (h_orig, w_orig),
+#             'chars': []
+#         }
+        
+#         for line in metadata[1:]:  # Skip the ORIGINAL_SIZE line
+#             parts = line.split()
+#             if len(parts) == 9 and parts[0] == "CHAR":
+#                 idx, x, y, w, h, max_w, max_h, pad_val = map(int, parts[1:])
+#                 all_files_metadata[base_name]['chars'].append((idx, x, y, w, h, max_w, max_h, pad_val))
+
+#     print("✅ Done! Characters processed with uniform max size and padding. Metadata includes max_w, max_h, and padding.")
+#     final_size_w = global_max_w + pad * 2
+#     final_size_h = global_max_h + pad * 2
+#     print(f"🔎 Max character size (before padding): width={global_max_w}, height={global_max_h}")
+#     print(f"🖼️ Final saved character image size (with padding): width={final_size_w}, height={final_size_h}")
+
+#     return character_dataloader, all_files_metadata
+
+
+# def combine_characters(character_dataloader: List[Dict[str, Any]], metadata: Dict[str, Any]) -> List[Tuple[np.ndarray, str]]:
+#     """
+#     Combine character images back into original form using metadata.
+    
+#     Args:
+#         character_dataloader: List of character data from split_characters
+#         metadata: Metadata dictionary from split_characters
+    
+#     Returns:
+#         List of (combined_image_array, filename) tuples
+#     """
+    
+#     print("Processing character combination...")
+    
+#     # Group character data by original filename
+#     chars_by_file = {}
+#     for char_data in character_dataloader:
+#         orig_filename = char_data['original_filename']
+#         base_name = orig_filename.replace('.png', '').replace('.jpg', '')
+#         if base_name not in chars_by_file:
+#             chars_by_file[base_name] = []
+#         chars_by_file[base_name].append(char_data)
+    
+#     combined_images = []
+    
+#     for base_name, file_metadata in metadata.items():
+#         print(f"Processing {base_name}...")
+
+#         original_size = file_metadata['original_size']
+#         char_metadata = file_metadata['chars']
+
+#         if original_size is None:
+#             continue
+
+#         h_orig, w_orig = original_size
+#         combined_img = np.full((h_orig, w_orig, 3), 255, dtype=np.uint8)
+
+#         # Get character data for this file
+#         file_chars = chars_by_file.get(base_name, [])
+        
+#         for idx, x, y, w, h, max_w, max_h, pad in char_metadata:
+#             # Find the corresponding character image
+#             char_img_padded = None
+#             for char_data in file_chars:
+#                 if char_data['char_index'] == idx:
+#                     char_img_padded = char_data['image']
+#                     break
+            
+#             if char_img_padded is None:
+#                 continue
+
+#             # Remove padding from padded char image (now directly the original char size)
+#             char_img_cropped = char_img_padded[pad:-pad, pad:-pad]
+
+#             # Crop center region corresponding to original bounding box (w, h)
+#             start_y = (char_img_cropped.shape[0] - h) // 2
+#             start_x = (char_img_cropped.shape[1] - w) // 2
+#             char_img = char_img_cropped[start_y:start_y+h, start_x:start_x+w]
+
+#             combined_img[y:y+h, x:x+w] = char_img
+
+#         combined_images.append((combined_img, f"{base_name}.png"))
+#         print(f"✅ Combined image: {base_name}.png")
+
+#     print("✅ Done! All images combined back to original form.")
+#     return combined_images
+
+from typing import List, Dict, Tuple, Any
+import os
+import cv2
+import numpy as np
+
+def split_characters(
+    dataloader, 
+    target_h: int = 28, 
+    target_w: int = 44, 
+    debug: bool = False, 
+    debug_output_dir: str = None
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """
+    Split character images from dataloader into fixed-size (28,44) padded images.
+
     Args:
-        dataloader: Iterable that yields (image_array, filename, label) tuples
-        padding: Padding to add around each character
-        char_size: Uniform size for character images (width and height) 
-        debug: Save debug images showing detected character boundaries
-        debug_output_dir: Directory to save debug images (required if debug=True)
-    
+        dataloader: Iterable yielding (image_array, filename, label) tuples
+        target_h: Fixed height for padded character images
+        target_w: Fixed width for padded character images
+        debug: Save debug images with detected contours
+        debug_output_dir: Directory for debug images
+
     Returns:
-        Tuple of (character_dataloader_list, metadata_dict)
-        - character_dataloader_list: List of dicts with keys 'image', 'filename', 'char_label', 'char_index'
-        - metadata_dict: Dictionary containing all metadata needed for combining
+        - character_dataloader: List of dicts with character images + metadata
+        - all_files_metadata: Metadata needed for recombining
     """
-    
     if debug and debug_output_dir is None:
         raise ValueError("debug_output_dir must be provided when debug=True")
-    
+
     if debug:
         os.makedirs(debug_output_dir, exist_ok=True)
-    
-    # Convert dataloader to list for two-pass processing
+
     data_list = list(dataloader)
-    
-    # First pass: compute global max width and height of all valid contours in dataset
-    global_max_w = 0
-    global_max_h = 0
-
-    for img_array, filename, label in data_list:
-        # Convert numpy array to opencv format if needed
-        if len(img_array.shape) == 3 and img_array.shape[2] == 3:
-            img_color = img_array.astype(np.uint8)
-        else:
-            img_color = cv2.cvtColor(img_array.astype(np.uint8), cv2.COLOR_GRAY2BGR)
-            
-        gray = cv2.cvtColor(img_color, cv2.COLOR_BGR2GRAY)
-
-        thresh = 255 - gray
-        _, thresh_bin = cv2.threshold(thresh, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        contours, _ = cv2.findContours(thresh_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        contours = sorted(contours, key=lambda ctr: cv2.boundingRect(ctr)[0])
-
-        valid_contours = []
-        for ctr in contours:
-            x, y, w, h = cv2.boundingRect(ctr)
-            if w > 2 and h > 2:
-                valid_contours.append(ctr)
-
-        for i, ctr in enumerate(valid_contours):
-            if i >= len(label):
-                break
-            x, y, w, h = cv2.boundingRect(ctr)
-            if w > global_max_w:
-                global_max_w = w
-            if h > global_max_h:
-                global_max_h = h
-
-    print(f"Global max character size determined: width={global_max_w}, height={global_max_h}")
-
-    pad = 5
     character_dataloader = []
     all_files_metadata = {}
 
     for img_array, filename, label in data_list:
         print(f"Processing {filename}...")
 
-        # Convert numpy array to opencv format if needed
+        # Ensure image is color
         if len(img_array.shape) == 3 and img_array.shape[2] == 3:
             img_color = img_array.astype(np.uint8)
         else:
             img_color = cv2.cvtColor(img_array.astype(np.uint8), cv2.COLOR_GRAY2BGR)
-            
+
         gray = cv2.cvtColor(img_color, cv2.COLOR_BGR2GRAY)
 
         thresh = 255 - gray
-        _, thresh_bin = cv2.threshold(thresh, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        contours, _ = cv2.findContours(thresh_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        _, thresh_bin = cv2.threshold(
+            thresh, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
+        )
+        contours, _ = cv2.findContours(
+            thresh_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
         contours = sorted(contours, key=lambda ctr: cv2.boundingRect(ctr)[0])
 
-        valid_contours = []
-        for ctr in contours:
-            x, y, w, h = cv2.boundingRect(ctr)
-            if w > 2 and h > 2:
-                valid_contours.append(ctr)
+        # filter valid contours
+        valid_contours = [
+            ctr for ctr in contours if cv2.boundingRect(ctr)[2] > 2 and cv2.boundingRect(ctr)[3] > 2
+        ]
 
         print(f" -> Found {len(valid_contours)} valid contours for '{label}' (expected {len(label)})")
 
-        metadata = []
         h_orig, w_orig = gray.shape[:2]
-        metadata.append(f"ORIGINAL_SIZE {h_orig} {w_orig}")
 
-        # for i, ctr in enumerate(valid_contours):
-        #     x, y, w, h = cv2.boundingRect(ctr)
-        #     if i >= len(label):
-        #         break
-
-        #     char_img = img_color[y:y+h, x:x+w].copy()
-
-        #     # Create white image of size (global_max_h, global_max_w)
-        #     char_canvas = np.full((global_max_h, global_max_w, 3), 255, dtype=np.uint8)
-
-        #     # Compute top-left corner to center the char_img in char_canvas
-        #     y_offset = (global_max_h - h) // 2
-        #     x_offset = (global_max_w - w) // 2
-
-        #     char_canvas[y_offset:y_offset+h, x_offset:x_offset+w] = char_img
-
-        #     # Add 5 pixel padding border around the image
-        #     char_img_padded = cv2.copyMakeBorder(char_canvas, pad, pad, pad, pad, cv2.BORDER_CONSTANT, value=[255,255,255])
-
-        #     char_label = label[i]
-            
-        #     # Add to character dataloader
-        #     character_dataloader.append({
-        #         'image': char_img_padded,
-        #         'filename': f"{filename}_{i}_{char_label}",
-        #         'char_label': char_label,
-        #         'char_index': i,
-        #         'original_filename': filename
-        #     })
-
-        #     # Save global_max_w, global_max_h, and padding in metadata
-        #     metadata.append(f"CHAR {i} {x} {y} {w} {h} {global_max_w} {global_max_h} {pad}")
-        target_h, target_w = 28, 44  # fixed output size for all characters
+        file_metadata = {
+            "original_size": (h_orig, w_orig),
+            "chars": []
+        }
 
         for i, ctr in enumerate(valid_contours):
-            x, y, w, h = cv2.boundingRect(ctr)
             if i >= len(label):
                 break
-
+            x, y, w, h = cv2.boundingRect(ctr)
             char_img = img_color[y:y+h, x:x+w].copy()
 
-            # ---- Compute padding to center into target size ----
+            # compute padding
             pad_top = (target_h - h) // 2
             pad_bottom = target_h - h - pad_top
             pad_left = (target_w - w) // 2
             pad_right = target_w - w - pad_left
 
-            # If the contour is larger than target_h/target_w, resize it down
+            # safety: shrink if larger than target
             if h > target_h or w > target_w:
-                char_img = cv2.resize(char_img, (min(w, target_w), min(h, target_h)))
+                char_img = cv2.resize(
+                    char_img, (min(w, target_w), min(h, target_h))
+                )
                 h, w = char_img.shape[:2]
                 pad_top = (target_h - h) // 2
                 pad_bottom = target_h - h - pad_top
                 pad_left = (target_w - w) // 2
                 pad_right = target_w - w - pad_left
 
-            # Apply flexible padding to reach exactly (28, 44)
             char_img_padded = cv2.copyMakeBorder(
                 char_img,
                 pad_top, pad_bottom,
                 pad_left, pad_right,
-                cv2.BORDER_CONSTANT,
-                value=[255, 255, 255]
+                cv2.BORDER_CONSTANT, value=[255, 255, 255]
             )
 
-            assert char_img_padded.shape[0] == target_h and char_img_padded.shape[1] == target_w, \
+            assert char_img_padded.shape[:2] == (target_h, target_w), \
                 f"Got {char_img_padded.shape}, expected {(target_h, target_w)}"
 
             char_label = label[i]
 
-            # Add to character dataloader
             character_dataloader.append({
-                'image': char_img_padded,
-                'filename': f"{filename}_{i}_{char_label}",
-                'char_label': char_label,
-                'char_index': i,
-                'original_filename': filename
+                "image": char_img_padded,
+                "filename": f"{filename}_{i}_{char_label}",
+                "char_label": char_label,
+                "char_index": i,
+                "original_filename": filename
             })
 
-            # Save fixed-size metadata
-            metadata.append(f"CHAR {i} {x} {y} {w} {h} {target_w} {target_h} 0")
+            # store exact padding in metadata
+            file_metadata["chars"].append(
+                (i, x, y, w, h, pad_top, pad_bottom, pad_left, pad_right)
+            )
 
         if debug:
             debug_img = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
@@ -205,91 +421,61 @@ def split_characters(dataloader, padding: int = 10, char_size: int = 64, debug: 
                 if i < len(label):
                     x, y, w, h = cv2.boundingRect(ctr)
                     cv2.rectangle(debug_img, (x, y), (x+w, y+h), (0, 255, 0), 1)
-                    cv2.putText(debug_img, label[i], (x, y-2), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 255), 1)
+                    cv2.putText(debug_img, label[i], (x, y-2),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 255), 1)
             cv2.imwrite(os.path.join(debug_output_dir, f"debug_{filename}.png"), debug_img)
 
-        # Store metadata for this file
-        base_name = filename.replace('.png', '').replace('.jpg', '')
-        all_files_metadata[base_name] = {
-            'original_size': (h_orig, w_orig),
-            'chars': []
-        }
-        
-        for line in metadata[1:]:  # Skip the ORIGINAL_SIZE line
-            parts = line.split()
-            if len(parts) == 9 and parts[0] == "CHAR":
-                idx, x, y, w, h, max_w, max_h, pad_val = map(int, parts[1:])
-                all_files_metadata[base_name]['chars'].append((idx, x, y, w, h, max_w, max_h, pad_val))
+        base_name = filename.replace(".png", "").replace(".jpg", "")
+        all_files_metadata[base_name] = file_metadata
 
-    print("✅ Done! Characters processed with uniform max size and padding. Metadata includes max_w, max_h, and padding.")
-    final_size_w = global_max_w + pad * 2
-    final_size_h = global_max_h + pad * 2
-    print(f"🔎 Max character size (before padding): width={global_max_w}, height={global_max_h}")
-    print(f"🖼️ Final saved character image size (with padding): width={final_size_w}, height={final_size_h}")
-
+    print("✅ Done! Characters processed with fixed target size + padding metadata.")
     return character_dataloader, all_files_metadata
 
 
-def combine_characters(character_dataloader: List[Dict[str, Any]], metadata: Dict[str, Any]) -> List[Tuple[np.ndarray, str]]:
+def combine_characters(
+    character_dataloader: List[Dict[str, Any]], 
+    metadata: Dict[str, Any]
+) -> List[Tuple[np.ndarray, str]]:
     """
-    Combine character images back into original form using metadata.
-    
-    Args:
-        character_dataloader: List of character data from split_characters
-        metadata: Metadata dictionary from split_characters
-    
-    Returns:
-        List of (combined_image_array, filename) tuples
+    Recombine characters into original images using stored metadata.
     """
-    
     print("Processing character combination...")
-    
-    # Group character data by original filename
+
     chars_by_file = {}
     for char_data in character_dataloader:
-        orig_filename = char_data['original_filename']
-        base_name = orig_filename.replace('.png', '').replace('.jpg', '')
-        if base_name not in chars_by_file:
-            chars_by_file[base_name] = []
-        chars_by_file[base_name].append(char_data)
-    
+        orig_filename = char_data["original_filename"]
+        base_name = orig_filename.replace(".png", "").replace(".jpg", "")
+        chars_by_file.setdefault(base_name, []).append(char_data)
+
     combined_images = []
-    
+
     for base_name, file_metadata in metadata.items():
         print(f"Processing {base_name}...")
-
-        original_size = file_metadata['original_size']
-        char_metadata = file_metadata['chars']
-
-        if original_size is None:
-            continue
-
-        h_orig, w_orig = original_size
+        h_orig, w_orig = file_metadata["original_size"]
         combined_img = np.full((h_orig, w_orig, 3), 255, dtype=np.uint8)
 
-        # Get character data for this file
         file_chars = chars_by_file.get(base_name, [])
-        
-        for idx, x, y, w, h, max_w, max_h, pad in char_metadata:
-            # Find the corresponding character image
+
+        for (idx, x, y, w, h, pad_top, pad_bottom, pad_left, pad_right) in file_metadata["chars"]:
+            # find the char image
             char_img_padded = None
             for char_data in file_chars:
-                if char_data['char_index'] == idx:
-                    char_img_padded = char_data['image']
+                if char_data["char_index"] == idx:
+                    char_img_padded = char_data["image"]
                     break
-            
             if char_img_padded is None:
                 continue
 
-            # Remove padding from padded char image (now directly the original char size)
-            char_img_cropped = char_img_padded[pad:-pad, pad:-pad]
+            # remove padding
+            char_img_cropped = char_img_padded[
+                pad_top: char_img_padded.shape[0]-pad_bottom,
+                pad_left: char_img_padded.shape[1]-pad_right
+            ]
 
-            # Crop center region corresponding to original bounding box (w, h)
-            start_y = (char_img_cropped.shape[0] - h) // 2
-            start_x = (char_img_cropped.shape[1] - w) // 2
-            char_img = char_img_cropped[start_y:start_y+h, start_x:start_x+w]
+            assert char_img_cropped.shape[0] == h and char_img_cropped.shape[1] == w, \
+                f"Expected {(h,w)}, got {char_img_cropped.shape[:2]}"
 
-            combined_img[y:y+h, x:x+w] = char_img
+            combined_img[y:y+h, x:x+w] = char_img_cropped
 
         combined_images.append((combined_img, f"{base_name}.png"))
         print(f"✅ Combined image: {base_name}.png")
