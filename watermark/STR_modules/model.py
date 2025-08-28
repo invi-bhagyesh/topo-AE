@@ -26,46 +26,8 @@ class ImageFolder(torch.utils.data.Dataset):
         if self.transform:
             img = self.transform(img)
         return img, 0
-#####################################################################
-# Topological AE
 
 
-# print(f"Creating dataset from {data_dir}...")
-# dataset = AdversarialMNISTDataset(data_dir, attack_type)
-
-# dataloader = DataLoader(
-#     dataset,
-#     batch_size=batch_size,
-#     shuffle=False,
-#     drop_last=False
-# )
-# # 4. Extract reconstructed images
-# print("Extracting reconstructed images...")
-# all_reconstructions = []
-# all_original = []
-
-# model.eval()
-# with torch.no_grad():
-#     for batch_idx, (images, batch_labels) in enumerate(dataloader):
-#         if device == 'cuda':
-#             images = images.cuda()
-        
-#         # Get latent and reconstruction
-#         latent_batch = model.encode(images)
-#         reconst_batch = model.decode(latent_batch)
-        
-#         # Convert to numpy
-#         images_np = images.detach().cpu().numpy()
-#         reconst_np = reconst_batch.detach().cpu().numpy()
-        
-#         all_original.append(images_np)
-#         all_reconstructions.append(reconst_np)
-        
-#         if batch_idx % 10 == 0:
-#             print(f"Processed batch {batch_idx}")
-# # Concatenate all batches
-# original_images = np.concatenate(all_original, axis=0)
-# reconstructed_images = np.concatenate(all_reconstructions, axis=0)
 #####################################################################
 # Reformer + STR models
 
@@ -178,8 +140,9 @@ class Model(nn.Module):
 
 
 class FullModel(nn.Module):
-    def __init__(self, opt, reformer_ckpt_path=None, topo_ckpt_path=None,
-                  data_dir="/kaggle/input/invi_str_model/pytorch/default/9/data/data/protego/test", 
+    def __init__(self, opt, reformer_ckpt_path=None,
+                 topo_ckpt_path="/kaggle/input/draft/pytorch/default/2/Model_Weights.pth",
+                  data_dir="/kaggle/input/test-adv-splitted/test_original", 
                   device="cuda"):
         super().__init__()
         self.opt = opt
