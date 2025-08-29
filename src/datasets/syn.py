@@ -82,8 +82,7 @@ class SYN(Dataset):
         img_name = self.image_files[idx]
         img_path = os.path.join(self.data_dir, img_name)
         
-        image = Image.open(img_path).convert("RGB" if len(self.transform.transforms[1].mean) == 3 else "L")
-
+        image = Image.open(img_path).convert("RGB" if channels == 3 else "L")
         # Extract label from split filename: "originalWord_index_char.png"
         # 0_pTLTkrRoKu_0_0_p.png
         # 10000_HxhWHgeFom_10000_0_H.png 
