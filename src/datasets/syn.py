@@ -62,13 +62,6 @@ class SYN(Dataset):
 
         self.transform = transforms.Compose([
             transforms.RandomRotation(30),            # stronger rotations
-            transforms.RandomHorizontalFlip(),        # horizontal flips
-            transforms.RandomVerticalFlip(),          # vertical flips if appropriate
-            transforms.ColorJitter(
-                brightness=0.5, contrast=0.5, 
-                saturation=0.5, hue=0.1
-            ),
-            transforms.RandomAffine(degrees=0, translate=(0.2, 0.2), scale=(0.8, 1.2), shear=10),
             transforms.ToTensor(),
             transforms.Normalize(mean, std)
         ])
