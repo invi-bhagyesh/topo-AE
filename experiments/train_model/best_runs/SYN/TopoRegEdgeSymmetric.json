@@ -37,7 +37,7 @@
       }
     }
   },
-  "n_epochs": 100,
+  "n_epochs": 30,
   "quiet": true,
   "seed": 437051113,
   "val_size": 0.15,
