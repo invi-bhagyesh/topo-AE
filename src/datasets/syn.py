@@ -51,11 +51,9 @@ class SYN(Dataset):
         # all_pixels = np.concatenate(all_pixels, axis=0)
         # mean = all_pixels.mean(axis=0).tolist()
         # std = all_pixels.std(axis=0).tolist()
-
         sample_img = Image.open(os.path.join(self.data_dir, self.image_files[0]))
-        channels = 3 if sample_img.mode == "RGB" else 1
-
-        if channels == 3:
+        self.channels = 3 if sample_img.mode == "RGB" else 1
+        if self.channels == 3:
             mean = (0.5, 0.5, 0.5)
             std = (0.5, 0.5, 0.5)
         else:
@@ -82,8 +80,7 @@ class SYN(Dataset):
         img_name = self.image_files[idx]
         img_path = os.path.join(self.data_dir, img_name)
         
-        image = Image.open(img_path).convert("RGB" if channels == 3 else "L")
-        # Extract label from split filename: "originalWord_index_char.png"
+        image = Image.open(img_path).convert("RGB" if self.channels == 3 else "L")        # Extract label from split filename: "originalWord_index_char.png"
         # 0_pTLTkrRoKu_0_0_p.png
         # 10000_HxhWHgeFom_10000_0_H.png 
         ch = img_name.split('_')[-1].split('.')[0]  # get last character
