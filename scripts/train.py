@@ -951,7 +951,7 @@ def extract_latents_and_reconstructions(
     # ])
 
     # Your existing dataset
-    dataset = FlatImageDataset("/kaggle/input/test-adv-splitted/fawa_str_adv/fawa_str_adv")
+    dataset = FlatImageDataset("/kaggle/input/test-adv-splitted/train_split/train_split")
 
     print("SPlittinggg !!")
     # Complete workflow: split -> create dataset -> extract latents
