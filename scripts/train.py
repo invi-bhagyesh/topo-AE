@@ -1136,7 +1136,7 @@ def main():
     # Configuration - modify these paths for your setup
     if os.path.exists('/kaggle'):
         # Kaggle environment
-        model_path = "/kaggle/input/fawa_topo_ae/pytorch/default/2/Model State.pth"
+        model_path = "/kaggle/input/16dim_ae/pytorch/default/1/syn_16.pth"
         output_dir = f"/kaggle/working/{dataset_name.lower()}_inference_output"
         data_dir = f"/kaggle/working/{dataset_name.lower()}_data"
     else:
