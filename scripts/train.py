@@ -823,7 +823,7 @@ import torchvision.transforms as transforms
 class FlatImageDataset(Dataset):
     def __init__(self, root_dir, transform=None):
         self.root_dir = root_dir
-        self.image_files = [f for f in os.listdir(root_dir) if f.endswith('.png')]
+        self.image_files = [f for f in os.listdir(root_dir) if f.endswith('.jpg')]
         self.transform = transform
 
     def __len__(self):
@@ -951,7 +951,7 @@ def extract_latents_and_reconstructions(
     # ])
 
     # Your existing dataset
-    dataset = FlatImageDataset("/kaggle/input/test-adv-splitted/fawa_str_adv/fawa_str_adv")
+    dataset = FlatImageDataset("/kaggle/input/test-adv-splitted/train_original/train_original")
 
     print("SPlittinggg !!")
     # Complete workflow: split -> create dataset -> extract latents
