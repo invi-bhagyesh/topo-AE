@@ -116,7 +116,7 @@ class TrainingLoop():
                 g_output = discriminator(reconstruction)
                 g_loss = adv_loss_fn(g_output, real_labels)
 
-                loss = loss + g_loss
+                loss = loss + g_loss*2
                 loss_components['loss.gan'] = g_loss
                 # --- End GAN loss integration ---
 
