@@ -6,6 +6,7 @@ from .datasets.splitting import split_dataset
 import numpy as np
 from torchsummary import summary
 from .models.submodules import Discriminator
+from pytorch_msssim import ssim
 
 
 class TrainingLoop():
@@ -116,8 +117,12 @@ class TrainingLoop():
                 g_output = discriminator(reconstruction)
                 g_loss = adv_loss_fn(g_output, real_labels)
 
-                loss = loss + g_loss*2
+                # Add SSIM loss after GAN generator loss
+                ssim_loss = 1 - ssim(reconstruction, img, data_range=1.0, size_average=True)
+
+                loss = loss + g_loss + ssim_loss
                 loss_components['loss.gan'] = g_loss
+                loss_components['loss.ssim'] = ssim_loss
                 # --- End GAN loss integration ---
 
                 # Optimize
