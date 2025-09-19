@@ -83,9 +83,11 @@ class TopologicallyRegularizedAutoencoder(AutoencoderModel):
         }
         loss_components.update(topo_error_components)
         loss_components.update(ae_loss_comp)
+        reconstruction = self.autoencoder.decode(latent)
         return (
             loss,
-            loss_components
+            loss_components,
+            reconstruction
         )
 
     def encode(self, x):

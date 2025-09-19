@@ -135,6 +135,29 @@ class ConvolutionalAutoencoder_2D(AutoencoderModel):
         reconst_error = self.reconst_error(x, x_reconst)
         return reconst_error, {'reconstruction_error': reconst_error}
 
+class Discriminator(nn.Module):
+    """Enhanced MLP discriminator with added depth and regularization"""
+    def __init__(self, input_dims=(1, 28, 28)):
+        super().__init__()
+        n_input_dims = np.prod(input_dims)
+        self.net = nn.Sequential(
+            View((-1, n_input_dims)),
+            nn.Linear(n_input_dims, 1024),  # CHANGED: Increased from 512
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Dropout(0.3),  # ADDED: Dropout for regularization
+            nn.Linear(1024, 512),  # ADDED: New layer
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Dropout(0.3),  # ADDED: Dropout for regularization
+            nn.Linear(512, 256),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(256, 128),  # ADDED: New layer
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(128, 1)  # CHANGED: Input from 256 to 128
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
 
 class DeepAE(AutoencoderModel):
     """1000-500-250-2-250-500-1000."""
@@ -153,10 +176,10 @@ class DeepAE(AutoencoderModel):
             nn.Linear(500, 250),
             nn.ReLU(True),
             nn.BatchNorm1d(250),
-            nn.Linear(250, 16) # latent dim
+            nn.Linear(250, 64) # latent dim
         )
         self.decoder = nn.Sequential(
-            nn.Linear(16, 250), # latent dim
+            nn.Linear(64, 250), # latent dim
             nn.ReLU(True),
             nn.BatchNorm1d(250),
             nn.Linear(250, 500),
