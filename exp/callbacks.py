@@ -124,7 +124,7 @@ class LogDatasetLoss(Callback):
             data, _ = batch
             if self.device == 'cuda':
                 data = data.cuda(non_blocking=True)
-            loss, loss_components = model(data)
+            loss, loss_components, reconstruction = model(data)
             loss = convert_to_base_type(loss)
 
             # Rescale the losses as batch_size might not divide dataset
