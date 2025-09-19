@@ -120,7 +120,9 @@ class TrainingLoop():
                 # Add SSIM loss after GAN generator loss
                 ssim_loss = 1 - ssim(reconstruction, img, data_range=1.0, size_average=True)
 
-                loss = loss + g_loss + ssim_loss
+                # loss = loss + g_loss + ssim_loss
+                loss = loss + g_loss*2
+
                 loss_components['loss.gan'] = g_loss
                 loss_components['loss.ssim'] = ssim_loss
                 # --- End GAN loss integration ---
