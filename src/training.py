@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from .datasets.splitting import split_dataset
 import numpy as np
 from torchsummary import summary
-from .models.submodules import Discriminator
+from .models.submodules import MNISTDiscriminator as Discriminator
 
 
 class TrainingLoop():
