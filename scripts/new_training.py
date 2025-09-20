@@ -288,7 +288,7 @@ def main():
     # Configuration - modify these paths for your setup
     if os.path.exists('/kaggle'):
         # Kaggle environment
-        model_path = "/kaggle/input/invi_gan_mnist/pytorch/default/10/state_twice.pth"
+        model_path = "/kaggle/input/invi_disc_topo/pytorch/default/1/MNIST_class_gan_changed_discriminator.pth"
         output_dir = "/kaggle/working/mnist_inference_output"
         data_dir = "/kaggle/working/mnist_data"
     else:
