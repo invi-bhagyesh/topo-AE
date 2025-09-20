@@ -344,7 +344,7 @@ def quick_inference_example():
 
 if __name__ == "__main__":
 
-    model_path = "/kaggle/input/invi_gan_mnist/pytorch/default/6/mnist_ssim.pth"
+    model_path = "/kaggle/input/invi_gan_mnist/pytorch/default/8/mnist_ssim.pth"
     base_data_dir = "/kaggle/input/purification/medmnist/mnist"  # or your actual data directory path
     output_dir = "/kaggle/working/output"
     
