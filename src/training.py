@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from .datasets.splitting import split_dataset
 import numpy as np
 from torchsummary import summary
-from .models.submodules import Discriminator 
+from .models.submodules import Discriminator
 
 
 class TrainingLoop():
@@ -80,8 +80,8 @@ class TrainingLoop():
         # GAN: local discriminator and optimizer
         discriminator = Discriminator().to(self.device)
         d_optimizer = torch.optim.Adam(discriminator.parameters(), lr=learning_rate)
-        # import torch.nn as nn
-        # adv_loss_fn = nn.BCEWithLogitsLoss()
+        import torch.nn as nn
+        adv_loss_fn = nn.BCEWithLogitsLoss()
 
         epoch = 1
         for epoch in range(1, n_epochs+1):
@@ -99,39 +99,22 @@ class TrainingLoop():
                 loss, loss_components, reconstruction = self.model(img)
 
                 # --- Minimal GAN loss integration ---
-                # BCE-based GAN loss (commented out):
-                # real_labels = torch.ones(img.size(0), 1, device=self.device)
-                # fake_labels = torch.zeros(img.size(0), 1, device=self.device)
-                #
-                # real_output = discriminator(img)
-                # fake_output = discriminator(reconstruction.detach())
-                #
-                # d_loss_real = adv_loss_fn(real_output, real_labels)
-                # d_loss_fake = adv_loss_fn(fake_output, fake_labels)
-                # d_loss = (d_loss_real + d_loss_fake) / 2
-                #
-                # d_optimizer.zero_grad()
-                # d_loss.backward(retain_graph=True)
-                # d_optimizer.step()
-                #
-                # g_output = discriminator(reconstruction)
-                # g_loss = adv_loss_fn(g_output, real_labels)
+                real_labels = torch.ones(img.size(0), 1, device=self.device)
+                fake_labels = torch.zeros(img.size(0), 1, device=self.device)
 
-                # --- WGAN loss ---
                 real_output = discriminator(img)
                 fake_output = discriminator(reconstruction.detach())
-                d_loss = -(torch.mean(real_output) - torch.mean(fake_output))
+
+                d_loss_real = adv_loss_fn(real_output, real_labels)
+                d_loss_fake = adv_loss_fn(fake_output, fake_labels)
+                d_loss = (d_loss_real + d_loss_fake) / 2
 
                 d_optimizer.zero_grad()
                 d_loss.backward(retain_graph=True)
                 d_optimizer.step()
-                # --- WGAN weight clipping ---
-                clip_value = 0.01
-                for p in discriminator.parameters():
-                    p.data.clamp_(-clip_value, clip_value)
 
                 g_output = discriminator(reconstruction)
-                g_loss = -torch.mean(g_output)
+                g_loss = adv_loss_fn(g_output, real_labels)
 
                 loss = loss + g_loss
                 loss_components['loss.gan'] = g_loss
