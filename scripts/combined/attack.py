@@ -74,7 +74,7 @@ def generate_adversarial_dataset(
 
         total += clean_img.size(0)
         all_clean.append(clean_img.cpu().numpy())
-        all_adv.append(x_adv.cpu().numpy())
+        all_adv.append(x_adv.detach().cpu().numpy())
         all_labels.append(label.cpu().numpy())
 
     all_clean = np.concatenate(all_clean, axis=0)
