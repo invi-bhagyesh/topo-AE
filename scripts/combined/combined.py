@@ -98,8 +98,9 @@ if __name__ == "__main__":
     # latent_nn.load_state_dict(torch.load(latent_nn_path, map_location=device))
 
     import os
-    print("Classifier path:", classifier_path, "Exists:", os.path.exists(classifier_path))
     classifier_path = args.classifier_path # if args.classifier_path is not None else f'./models/{dataset_name}_classifier.pth'
+    print("Classifier path:", classifier_path, "Exists:", os.path.exists(classifier_path))
+
     classifier = MNIST_CNN()
     classifier.load_state_dict(torch.load(classifier_path, map_location=device))
 
