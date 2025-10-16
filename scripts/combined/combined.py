@@ -20,8 +20,8 @@ class FullTopoPipeline(nn.Module):
     def __init__(self, topo_model, latent_reformer, latent_nn, classifier, device='cpu'):
         super().__init__()
         self.topo_model = topo_model
-        self.latent_reformer = latent_reformer
-        self.latent_nn = latent_nn
+        # self.latent_reformer = latent_reformer
+        # self.latent_nn = latent_nn
         self.classifier = classifier
         self.device = device
 
