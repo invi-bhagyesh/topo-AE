@@ -17,7 +17,7 @@ parser.add_argument('--classifier_path', type=str, help='Path to the classifier 
 args = parser.parse_args()
 
 class FullTopoPipeline(nn.Module):
-    def __init__(self, topo_model, latent_reformer, latent_nn, classifier, device='cpu'):
+    def __init__(self, topo_model, classifier, device='cpu'):
         super().__init__()
         self.topo_model = topo_model
         # self.latent_reformer = latent_reformer
