@@ -88,7 +88,7 @@ if __name__ == "__main__":
     topo_model.load_state_dict(state_dict)
     topo_model.eval()
 
-    # latent_reformer_path = args.latent_reformer_path if args.latent_reformer_path is not None else f'./models/{dataset_name}_latent_reformer.pth'
+    latent_reformer_path = args.latent_reformer_path if args.latent_reformer_path is not None else f'./models/{dataset_name}_latent_reformer.pth'
     latent_reformer = LatentReformer()
     latent_reformer.load_state_dict(torch.load(latent_reformer_path, map_location=device))
 
