@@ -97,7 +97,7 @@ if __name__ == "__main__":
         classifier=classifier,
         device=device
     )
-    full_pipeline.load_state_dict(torch.load("./models/full_pipeline_combined.pth", map_location=device))
+    full_pipeline.load_state_dict(torch.load("./models/models--invi-bhagyesh--topo_combined/snapshots/79cb10032ff3b0c719a6a510a0c44162c564efed/MNIST_full_pipeline.pth", map_location=device))
 
     full_pipeline.to(device)
     full_pipeline.eval()
