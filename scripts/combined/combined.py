@@ -136,8 +136,17 @@ if __name__ == "__main__":
     from torch.utils.data import DataLoader
     import torch.nn.functional as F
 
+    # Evaluate on MNIST test set
+    from torchvision import datasets, transforms
+    from torch.utils.data import DataLoader
+    import torch.nn.functional as F
+
     # Load MNIST test set
-    transform = transforms.Compose([transforms.ToTensor()])
+    # CHANGE: Added normalization to match classifier training
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.5,), (0.5,))  # Normalize to [-1, 1]
+    ])
     test_dataset = datasets.MNIST(root="./data", train=False, download=True, transform=transform)
     test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
 
@@ -152,7 +161,7 @@ if __name__ == "__main__":
             # Forward through pipeline
             recon_img, logits, mu, logvar, topo_img = full_pipeline(images)
 
-            # 1. Clean accuracy
+            # 1. Clean accuracy (now images are already normalized to [-1,1])
             clean_logits = full_pipeline.classifier(images)
             clean_pred = clean_logits.argmax(dim=1)
             clean_correct += (clean_pred == labels).sum().item()
