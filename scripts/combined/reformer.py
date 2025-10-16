@@ -25,6 +25,236 @@ def set_seed(seed=42):
 set_seed(42)
 
 
+def extract_latents_and_reconstructions(
+    model_path,
+    output_dir,
+    data_dir="./data",
+    batch_size=126,
+    device='cpu',
+    dataset_name="MNIST",
+    process_train=True,
+    process_test=True
+):
+    """
+    Extract latent representations and reconstructed images from dataset.
+    
+    Args:
+        model_path: Path to pre-trained model
+        output_dir: Directory to save results
+        data_dir: Directory for data
+        batch_size: Batch size for processing
+        device: Device to run inference on
+        process_train: Whether to process training set
+        process_test: Whether to process test set
+    """
+    
+    print(f"Loading pre-trained {dataset_name} Topological Autoencoder...")
+    
+    # 1. Load pre-trained model with exact dataset configuration
+    
+    if dataset_name == 'MNIST':
+        model = TopologicallyRegularizedAutoencoder(
+            autoencoder_model='DeepAE',  # Default MNIST model
+            lam=0.5002972000959738,     # Default MNIST lambda
+            toposig_kwargs={'match_edges': 'symmetric'}  # Default MNIST topology
+        )
+    elif dataset_name == 'CIFAR' : # Added dataset parser here 
+        model = TopologicallyRegularizedAutoencoder(  
+                        ae_kwargs ={
+                    'input_dims': [
+                    3,
+                    32,
+                    32
+                    ]
+                },
+                    autoencoder_model= "DeepAE",
+                    lam= 1.6280214927932581,
+                    toposig_kwargs= {
+                        "match_edges": "symmetric"
+                        }
+          )
+    elif dataset_name == 'SYN':
+        model = TopologicallyRegularizedAutoencoder(  
+                        ae_kwargs ={
+                    'input_dims': [
+                    3,
+                    28,
+                    44
+                    ]
+                },
+                    autoencoder_model= "DeepAE",
+                    lam= 1.6280214927932581,
+                    toposig_kwargs= {
+                        "match_edges": "symmetric"
+                        }
+          )
+
+    elif dataset_name == 'FashionMNIST':
+        model = TopologicallyRegularizedAutoencoder(
+            autoencoder_model='DeepAE',
+            lam=1.6280214927932581,
+            toposig_kwargs={'match_edges': 'symmetric'}
+        )
+
+    elif dataset_name == "EMNIST":
+        model = TopologicallyRegularizedAutoencoder(
+            autoencoder_model='DeepAE',  # Default MNIST model
+            lam=0.5002972000959738,     # Default MNIST lambda
+            toposig_kwargs={'match_edges': 'symmetric'}  # Default MNIST topology
+        )
+
+    ### This is the dataloading part starts here
+    # Load the trained weights
+    print(f"Loading model weights from {model_path}")
+    try:
+        state_dict = torch.load(model_path, map_location=device)
+        model.load_state_dict(state_dict)
+        model.eval()
+        print("Model loaded successfully!")
+    except Exception as e:
+        print(f"Error loading model: {e}")
+        return
+    
+    if device == 'cuda' and torch.cuda.is_available():
+        model = model.cuda()
+        print("Model moved to CUDA")
+    elif device == 'cuda':
+        print("CUDA requested but not available, using CPU")
+        device = 'cpu'
+    
+    # 2. Download dataset
+    # datasets = download_dataset(dataset_name, data_dir, train=process_train, test=process_test)
+
+    # transform = transforms.Compose([
+    #     transforms.Resize((128, 128)),   # resize to model input size
+    #     transforms.ToTensor(),           # convert to tensor
+    # ])
+
+    # Your existing dataset
+    dataset = FlatImageDataset("/kaggle/input/test-adv-splitted/train_original/train_original")
+
+    print("SPlittinggg !!")
+    # Complete workflow: split -> create dataset -> extract latents
+    character_data, metadata, char_latents, char_labels = process_characters_through_model(
+        dataset=dataset,
+        model=model, 
+        device=device,
+        output_dir="character_results",
+        padding=10,
+        char_size=64,
+        batch_size=32,
+        debug=True
+    )
+
+    print("Combining !!")
+
+    # Define the output directory
+    output_dir = "reconstructed_originals"
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Optional: Reconstruct original images from processed characters
+    if character_data and metadata:
+        combined_images = combine_and_save(
+            character_data,
+            metadata,
+            char_latents,
+            char_labels,
+            output_dir=output_dir
+        )
+        
+        for img_array, filename in combined_images:
+            cv2.imwrite(os.path.join(output_dir, filename), img_array)
+
+    print("Done")
+
+    
+    if True:
+        # Create dataloader
+        dataloader = DataLoader(
+            dataset,
+            batch_size=batch_size,
+            shuffle=False,
+            drop_last=False,
+            num_workers=2 if not os.path.exists('/kaggle') else 0  # No multiprocessing in Kaggle
+        )
+        
+        # Extract latent representations using existing codebase function
+        print("Extracting latent representations...")
+        try:
+            latents, labels = get_space(
+                model,
+                dataloader,
+                mode='latent',
+                device=device
+            )
+            print(f"Latent space shape: {latents.shape}")
+            print(f"Labels shape: {labels.shape}")
+
+        except Exception as e:
+            print(f"Error extracting latents with get_space: {e}")
+            print("Falling back to manual extraction...")
+            latents, labels = extract_manually(model, dataloader, device)
+            if dataset_name == "EMNIST":
+                labels = labels - 1
+        
+        # Extract reconstructed images
+        print("Extracting reconstructed images...")
+        original_images, reconstructed_images = extract_reconstructions(
+            model, dataloader, device
+        )
+        
+
+        print(f"Original images shape (rescaled to [0,1]): {original_images.shape}")
+        print(f"Reconstructed images shape (rescaled to [0,1]): {reconstructed_images.shape}")
+        
+        # Save results in requested format: (clean, reconstructed, label, latent)
+        print("Saving results...")
+        
+        # Save complete data to NPZ in requested format
+        npz_path = os.path.join(output_dir, f"{dataset_name.lower()}_{split_name}_complete.npz")
+        np.savez_compressed(
+            npz_path,
+            clean=original_images,           # Original/clean images
+            reconstructed=reconstructed_images,  # Reconstructed images
+            label=labels,                    # Labels
+            latent=latents                   # Latent representations
+        )
+        print(f"Saved complete data to {npz_path}")
+        
+        # Also save as separate CSV for latents (for easy analysis)
+        csv_path = os.path.join(output_dir, f"{dataset_name.lower()}_{split_name}_latents.csv")
+        df = pd.DataFrame(latents)
+        df['label'] = labels
+        df.to_csv(csv_path, index=False)
+        print(f"Saved latents to {csv_path}")
+        
+        # Save reconstruction error statistics
+        mse_per_sample = np.mean((original_images - reconstructed_images) ** 2, axis=(1, 2, 3))
+        stats_path = os.path.join(output_dir, f"{dataset_name.lower()}_{split_name}_reconstruction_stats.csv")
+        stats_df = pd.DataFrame({
+            'sample_idx': range(len(mse_per_sample)),
+            'label': labels,
+            'mse_reconstruction_error': mse_per_sample
+        })
+        stats_df.to_csv(stats_path, index=False)
+        print(f"Saved reconstruction statistics to {stats_path}")
+        
+        print(f"Successfully processed {split_name} set:")
+        print(f"  - Samples: {len(latents)}")
+        print(f"  - Latent dimension: {latents.shape[1]}")
+        print(f"  - Mean reconstruction MSE: {np.mean(mse_per_sample):.6f}")
+        print(f"  - Std reconstruction MSE: {np.std(mse_per_sample):.6f}")
+        
+        print(f"\nSaved data format:")
+        print(f"  - clean: {original_images.shape} (original images)")
+        print(f"  - reconstructed: {reconstructed_images.shape} (reconstructed images)")
+        print(f"  - label: {labels.shape} (digit labels 0-9)")
+        print(f"  - latent: {latents.shape} (latent representations)")
+        ## This is the dataloading part
+
+        
+
+
 
 """
 dataloader
