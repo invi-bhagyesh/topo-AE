@@ -320,31 +320,30 @@ class LatentNet(nn.Module):
 """
 Reformer
 """
-import torch
-import torch.nn as nn
 class LatentReformer(nn.Module):
     def __init__(self):
         super().__init__()
-        # Encoder layers (same structure as before)
+        # Encoder layers
         self.encoder = nn.Sequential(
             nn.Conv2d(1, 1, kernel_size=3, padding=1),
-            nn.Sigmoid(),
+            nn.ReLU(),  # Changed from Sigmoid
             nn.AvgPool2d(kernel_size=2),
             nn.Conv2d(1, 1, kernel_size=3, padding=1),
-            nn.Sigmoid()
+            nn.ReLU()  # Changed from Sigmoid
         )
-        # Instead of one output, we output mean and log_variance for VAE latent distribution
+        
         self.fc_mu = nn.Conv2d(1, 1, kernel_size=3, padding=1)
         self.fc_logvar = nn.Conv2d(1, 1, kernel_size=3, padding=1)
 
-        # Decoder (same structure, input is sampled z)
+        # Decoder with proper activation
         self.decoder = nn.Sequential(
             nn.Conv2d(2, 1, kernel_size=3, padding=1),
-            nn.Sigmoid(),
+            nn.ReLU(),  # Changed from Sigmoid
             nn.Upsample(scale_factor=2),
             nn.Conv2d(1, 1, kernel_size=3, padding=1),
-            nn.Sigmoid(),
-            nn.Conv2d(1, 1, kernel_size=3, padding=1)
+            nn.ReLU(),  # Changed from Sigmoid
+            nn.Conv2d(1, 1, kernel_size=3, padding=1),
+            nn.Tanh()  # ✅ ADDED: Outputs [-1, 1]
         )
 
     def reparameterize(self, mu, logvar):
@@ -356,24 +355,18 @@ class LatentReformer(nn.Module):
         x = self.encoder(img)
         mu = self.fc_mu(x)
         logvar = self.fc_logvar(x)
-        z = self.reparameterize(mu, logvar)  # [B, C, H, W]
+        z = self.reparameterize(mu, logvar)
     
-        # ✅ CHANGED: Flatten latent_bottleneck to 2D first, then reshape to match z's spatial dims
         batch_size = latent_bottleneck.size(0)
-        latent_flat = latent_bottleneck.view(batch_size, -1)  # [B, all_other_dims_flattened]
-        
-        # ✅ CHANGED: Reshape to 4D to match z: [B, C, H, W] where H=z.size(2), W=z.size(3)
-        latent_bottleneck_expanded = latent_flat.view(batch_size, -1, 1, 1)  
-        latent_bottleneck_expanded = latent_bottleneck_expanded.expand(-1, -1, z.size(2), z.size(3))  # [B, C, H, W]
+        latent_flat = latent_bottleneck.view(batch_size, -1)
+        latent_bottleneck_expanded = latent_flat.view(batch_size, -1, 1, 1)
+        latent_bottleneck_expanded = latent_bottleneck_expanded.expand(-1, -1, z.size(2), z.size(3))
     
-        # Concatenate along channel dimension
         z_cat = torch.cat([z, latent_bottleneck_expanded.to(z.device)], dim=1)
     
-        # Project to 2 channels for decoder
         proj = nn.Conv2d(z_cat.size(1), 2, kernel_size=1).to(z.device)
         z = proj(z_cat)
     
-        # Decode
         x_recon = self.decoder(z)
         return x_recon, mu, logvar
 
