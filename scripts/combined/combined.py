@@ -29,6 +29,9 @@ class FullTopoPipeline(nn.Module):
         latent = self.topo_model.encode(x)
         
         topo_img = self.topo_model.decode(latent)
+        
+        # topo_img = torch.clamp(topo_img, 0, 1)  # First clamp to [0, 1]
+        # topo_img = (topo_img - 0.5) / 0.5  # Then normalize to [-1, 1]
 
         latent_out = self.latent_nn(latent)
 
@@ -81,21 +84,21 @@ if __name__ == "__main__":
             toposig_kwargs={'match_edges': 'symmetric'}
         )
 
-    # state_dict = torch.load(model_path, map_location=device)
-    # topo_model.load_state_dict(state_dict)
-    # topo_model.eval()
+    state_dict = torch.load(model_path, map_location=device)
+    topo_model.load_state_dict(state_dict)
+    topo_model.eval()
 
     # latent_reformer_path = args.latent_reformer_path if args.latent_reformer_path is not None else f'./models/{dataset_name}_latent_reformer.pth'
     latent_reformer = LatentReformer()
-    # latent_reformer.load_state_dict(torch.load(latent_reformer_path, map_location=device))
+    latent_reformer.load_state_dict(torch.load(latent_reformer_path, map_location=device))
 
-    # latent_nn_path = args.latent_nn_path if args.latent_nn_path is not None else f'./models/{dataset_name}_latent_nn.pth'
+    latent_nn_path = args.latent_nn_path if args.latent_nn_path is not None else f'./models/{dataset_name}_latent_nn.pth'
     latent_nn = LatentNet()
-    # latent_nn.load_state_dict(torch.load(latent_nn_path, map_location=device))
+    latent_nn.load_state_dict(torch.load(latent_nn_path, map_location=device))
 
-    # classifier_path = args.classifier_path if args.classifier_path is not None else f'./models/{dataset_name}_classifier.pth'
+    classifier_path = args.classifier_path if args.classifier_path is not None else f'./models/{dataset_name}_classifier.pth'
     classifier = MNIST_CNN()
-    # classifier.load_state_dict(torch.load(classifier_path, map_location=device))
+    classifier.load_state_dict(torch.load(classifier_path, map_location=device))
 
 
     # Combine models
@@ -106,7 +109,11 @@ if __name__ == "__main__":
         classifier=classifier,
         device=device
     )
-    full_pipeline.load_state_dict(torch.load("./models/models--invi-bhagyesh--topo_combined/snapshots/79cb10032ff3b0c719a6a510a0c44162c564efed/MNIST_full_pipeline.pth", map_location=device))
+    # full_pipeline.load_state_dict(torch.load("./models/models--invi-bhagyesh--topo_combined/snapshots/79cb10032ff3b0c719a6a510a0c44162c564efed/MNIST_full_pipeline.pth", map_location=device))
+    # Save the full pipeline weights
+    save_path = f'./models/{dataset_name}_full_pipeline.pth'
+    torch.save(full_pipeline.state_dict(), save_path)
+    print(f"Full pipeline weights saved at: {save_path}")
 
     full_pipeline.to(device)
     full_pipeline.eval()
