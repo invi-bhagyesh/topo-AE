@@ -27,13 +27,43 @@ class FullTopoPipeline(nn.Module):
 
     def forward(self, x):
         latent = self.topo_model.encode(x)
+        
         topo_img = self.topo_model.decode(latent)
+
         latent_out = self.latent_nn(latent)
+
         # Step 3: latent reformer reconstruction
         recon_img, mu, logvar = self.latent_reformer(topo_img, latent_out)
+
         # Step 4: classification
         logits = self.classifier(recon_img)
         return recon_img, logits, mu, logvar, topo_img
+
+
+import matplotlib.pyplot as plt
+
+def show_images(clean, topo, recon, n=5):
+    """Visualize first n images of each type side by side"""
+    plt.figure(figsize=(12, 4))
+    for i in range(n):
+        # Clean
+        plt.subplot(3, n, i + 1)
+        plt.imshow(clean[i].cpu().squeeze(), cmap='gray')
+        if i == 0: plt.ylabel("Clean")
+        plt.axis('off')
+        # Topo
+        plt.subplot(3, n, n + i + 1)
+        plt.imshow(topo[i].cpu().squeeze(), cmap='gray')
+        if i == 0: plt.ylabel("Topo")
+        plt.axis('off')
+        # Reconstructed
+        plt.subplot(3, n, 2*n + i + 1)
+        plt.imshow(recon[i].cpu().squeeze(), cmap='gray')
+        if i == 0: plt.ylabel("Reconstructed")
+        plt.axis('off')
+    plt.tight_layout()
+    plt.show()
+
 
 
 if __name__ == "__main__":
@@ -158,3 +188,14 @@ if __name__ == "__main__":
     print(f"Clean accuracy: {clean_acc:.2f}%")
     print(f"Topo image accuracy: {topo_acc:.2f}%")
     print(f"Reconstructed image accuracy: {recon_acc:.2f}%")
+
+
+
+    # Use a small batch from test_loader
+    images, _ = next(iter(test_loader))
+    images = images.to(device)
+
+    with torch.no_grad():
+        recon_img, _, _, _, topo_img = full_pipeline(images)
+
+    show_images(images, topo_img, recon_img, n=5)
