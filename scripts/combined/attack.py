@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 import torchattacks
-from combined import FullTopoPipeline as full_pipeline
+from combined import FullTopoPipeline
 import sys
 import os
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
