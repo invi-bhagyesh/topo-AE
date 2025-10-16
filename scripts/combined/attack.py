@@ -114,7 +114,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Generate adversarial dataset with multiple attacks")
-    parser.add_argument("--attack", type=str, default="apgd", help="Attack type: apgd, pgd, autoattack, fgsm, cw, etc.")
+    parser.add_argument("--attack", type=str, default="pgd", help="Attack type: apgd, pgd, autoattack, fgsm, cw, etc.")
     parser.add_argument("--eps", type=float, default=0.3, help="Perturbation budget (Linf or L2 depending on attack)")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="Device to run on")
     parser.add_argument("--dataset", type=str, default="MNIST", choices=["MNIST", "EMNIST"], help="Dataset to use for examples")
