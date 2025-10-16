@@ -33,7 +33,7 @@ class FullTopoPipeline(nn.Module):
         recon_img, mu, logvar = self.latent_reformer(topo_img, latent_out)
         # Step 4: classification
         logits = self.classifier(recon_img)
-        return recon_img, logits, mu, logvar
+        return recon_img, logits, mu, logvar, topo_img
 
 
 if __name__ == "__main__":
@@ -104,7 +104,7 @@ if __name__ == "__main__":
     with torch.no_grad():
         # MNIST images: batch_size=2, channels=1, height=28, width=28
         dummy_input = torch.randn(2, 1, 28, 28).to(device)
-        recon_img, logits, mu, logvar = full_pipeline(dummy_input)
+        recon_img, logits, mu, logvar, _ = full_pipeline(dummy_input)
 
     print("Sanity Check:")
     print("Input shape:", dummy_input.shape)
@@ -112,5 +112,49 @@ if __name__ == "__main__":
     print("Logits shape:", logits.shape)
     print("Latent mu shape:", mu.shape)
     print("Latent logvar shape:", logvar.shape)
-    # torch.save(full_pipeline.state_dict(), "./models/full_pipeline_combined.pth")
-    # print("Full pipeline weights saved to ./models/full_pipeline_combined.pth")
+
+    # Evaluate on MNIST test set
+    from torchvision import datasets, transforms
+    from torch.utils.data import DataLoader
+    import torch.nn.functional as F
+
+    # Load MNIST test set
+    transform = transforms.Compose([transforms.ToTensor()])
+    test_dataset = datasets.MNIST(root="./data", train=False, download=True, transform=transform)
+    test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
+
+    clean_correct, topo_correct, recon_correct = 0, 0, 0
+    total = 0
+
+    full_pipeline.eval()
+    with torch.no_grad():
+        for images, labels in test_loader:
+            images, labels = images.to(device), labels.to(device)
+
+            # Forward through pipeline
+            recon_img, logits, mu, logvar, topo_img = full_pipeline(images)
+
+            # 1. Clean accuracy
+            clean_logits = full_pipeline.classifier(images)
+            clean_pred = clean_logits.argmax(dim=1)
+            clean_correct += (clean_pred == labels).sum().item()
+
+            # 2. Topo accuracy
+            topo_logits = full_pipeline.classifier(topo_img.detach())
+            topo_pred = topo_logits.argmax(dim=1)
+            topo_correct += (topo_pred == labels).sum().item()
+
+            # 3. Reconstructed accuracy
+            recon_pred = logits.argmax(dim=1)
+            recon_correct += (recon_pred == labels).sum().item()
+
+            total += labels.size(0)
+
+    clean_acc = 100 * clean_correct / total
+    topo_acc = 100 * topo_correct / total
+    recon_acc = 100 * recon_correct / total
+
+    print(f"MNIST Evaluation:")
+    print(f"Clean accuracy: {clean_acc:.2f}%")
+    print(f"Topo image accuracy: {topo_acc:.2f}%")
+    print(f"Reconstructed image accuracy: {recon_acc:.2f}%")
