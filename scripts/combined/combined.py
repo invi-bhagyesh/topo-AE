@@ -41,7 +41,32 @@ class FullTopoPipeline(nn.Module):
 
 
 
+import matplotlib.pyplot as plt
 
+def show_images(clean, topo, recon, n=5):
+    """
+    Visualize first n images of each type side by side.
+    Assumes images are in range [-1, 1] or [0,1].
+    """
+    plt.figure(figsize=(12, 4))
+    for i in range(n):
+        # Clean
+        plt.subplot(3, n, i + 1)
+        plt.imshow(clean[i].cpu().squeeze(), cmap='gray', vmin=0, vmax=1)
+        if i == 0: plt.ylabel("Clean")
+        plt.axis('off')
+        # Topo
+        plt.subplot(3, n, n + i + 1)
+        plt.imshow(topo[i].cpu().squeeze(), cmap='gray', vmin=0, vmax=1)
+        if i == 0: plt.ylabel("Topo")
+        plt.axis('off')
+        # Reconstructed
+        plt.subplot(3, n, 2*n + i + 1)
+        plt.imshow(recon[i].cpu().squeeze(), cmap='gray', vmin=0, vmax=1)
+        if i == 0: plt.ylabel("Reconstructed")
+        plt.axis('off')
+    plt.tight_layout()
+    plt.show()
 
 
 if __name__ == "__main__":
