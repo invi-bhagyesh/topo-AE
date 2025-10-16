@@ -199,3 +199,4 @@ if __name__ == "__main__":
         recon_img, _, _, _, topo_img = full_pipeline(images)
 
     show_images(images, topo_img, recon_img, n=5)
+    plt.savefig("mnist_pipeline_output.png")
