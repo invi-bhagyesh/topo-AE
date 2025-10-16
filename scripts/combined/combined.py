@@ -77,15 +77,15 @@ if __name__ == "__main__":
     # topo_model.eval()
 
     # latent_reformer_path = args.latent_reformer_path if args.latent_reformer_path is not None else f'./models/{dataset_name}_latent_reformer.pth'
-    # latent_reformer = LatentReformer()
+    latent_reformer = LatentReformer()
     # latent_reformer.load_state_dict(torch.load(latent_reformer_path, map_location=device))
 
     # latent_nn_path = args.latent_nn_path if args.latent_nn_path is not None else f'./models/{dataset_name}_latent_nn.pth'
-    # latent_nn = LatentNet()
+    latent_nn = LatentNet()
     # latent_nn.load_state_dict(torch.load(latent_nn_path, map_location=device))
 
     # classifier_path = args.classifier_path if args.classifier_path is not None else f'./models/{dataset_name}_classifier.pth'
-    # classifier = MNIST_CNN()
+    classifier = MNIST_CNN()
     # classifier.load_state_dict(torch.load(classifier_path, map_location=device))
 
 
