@@ -98,3 +98,15 @@ if __name__ == "__main__":
         device=device
     )
     full_pipeline.to(device)
+    full_pipeline.eval()
+    with torch.no_grad():
+        # MNIST images: batch_size=2, channels=1, height=28, width=28
+        dummy_input = torch.randn(2, 1, 28, 28).to(device)
+        recon_img, logits, mu, logvar = full_pipeline(dummy_input)
+
+    print("Sanity Check:")
+    print("Input shape:", dummy_input.shape)
+    print("Reconstructed image shape:", recon_img.shape)
+    print("Logits shape:", logits.shape)
+    print("Latent mu shape:", mu.shape)
+    print("Latent logvar shape:", logvar.shape)
