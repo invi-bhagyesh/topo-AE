@@ -11,8 +11,8 @@ from src.models.approx_based import TopologicallyRegularizedAutoencoder
 parser = argparse.ArgumentParser(description='Run the full topo pipeline.')
 parser.add_argument('--dataset', type=str, default='MNIST', choices=['MNIST', 'CIFAR', 'SYN', 'EMNIST'], help='Dataset name')
 parser.add_argument('--topo_model_path', type=str, help='Path to the topo model checkpoint')
-parser.add_argument('--latent_reformer_path', type=str, help='Path to the latent reformer checkpoint')
-parser.add_argument('--latent_nn_path', type=str, help='Path to the latent NN checkpoint')
+# parser.add_argument('--latent_reformer_path', type=str, help='Path to the latent reformer checkpoint')
+# parser.add_argument('--latent_nn_path', type=str, help='Path to the latent NN checkpoint')
 parser.add_argument('--classifier_path', type=str, help='Path to the classifier checkpoint')
 args = parser.parse_args()
 
@@ -97,6 +97,8 @@ if __name__ == "__main__":
     # latent_nn = LatentNet()
     # latent_nn.load_state_dict(torch.load(latent_nn_path, map_location=device))
 
+    import os
+    print("Classifier path:", classifier_path, "Exists:", os.path.exists(classifier_path))
     classifier_path = args.classifier_path # if args.classifier_path is not None else f'./models/{dataset_name}_classifier.pth'
     classifier = MNIST_CNN()
     classifier.load_state_dict(torch.load(classifier_path, map_location=device))
