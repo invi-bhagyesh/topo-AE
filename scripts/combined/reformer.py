@@ -320,6 +320,8 @@ class LatentNet(nn.Module):
 """
 Reformer
 """
+import torch
+import torch.nn as nn
 class LatentReformer(nn.Module):
     def __init__(self):
         super().__init__()
@@ -337,8 +339,7 @@ class LatentReformer(nn.Module):
 
         # Decoder (same structure, input is sampled z)
         self.decoder = nn.Sequential(
-            #nn.Conv2d(2, 1, kernel_size=3, padding=1),
-            nn.Conv2d(1, 1, kernel_size=3, padding=1),
+            nn.Conv2d(2, 1, kernel_size=3, padding=1),
             nn.Sigmoid(),
             nn.Upsample(scale_factor=2),
             nn.Conv2d(1, 1, kernel_size=3, padding=1),
@@ -350,16 +351,32 @@ class LatentReformer(nn.Module):
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return mu + eps * std
-
+    
     def forward(self, img, latent_bottleneck):
-    # def forward(self, img):
         x = self.encoder(img)
         mu = self.fc_mu(x)
         logvar = self.fc_logvar(x)
-        z = self.reparameterize(mu, logvar)# Sampled latent vector
-        z = torch.cat([z,latent_bottleneck],dim=1)
+        z = self.reparameterize(mu, logvar)  # [B, C, H, W]
+    
+        # ✅ CHANGED: Flatten latent_bottleneck to 2D first, then reshape to match z's spatial dims
+        batch_size = latent_bottleneck.size(0)
+        latent_flat = latent_bottleneck.view(batch_size, -1)  # [B, all_other_dims_flattened]
+        
+        # ✅ CHANGED: Reshape to 4D to match z: [B, C, H, W] where H=z.size(2), W=z.size(3)
+        latent_bottleneck_expanded = latent_flat.view(batch_size, -1, 1, 1)  
+        latent_bottleneck_expanded = latent_bottleneck_expanded.expand(-1, -1, z.size(2), z.size(3))  # [B, C, H, W]
+    
+        # Concatenate along channel dimension
+        z_cat = torch.cat([z, latent_bottleneck_expanded.to(z.device)], dim=1)
+    
+        # Project to 2 channels for decoder
+        proj = nn.Conv2d(z_cat.size(1), 2, kernel_size=1).to(z.device)
+        z = proj(z_cat)
+    
+        # Decode
         x_recon = self.decoder(z)
         return x_recon, mu, logvar
+
 
 
 
