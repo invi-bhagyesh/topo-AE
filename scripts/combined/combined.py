@@ -34,15 +34,14 @@ class FullTopoPipeline(nn.Module):
         topo_img = (topo_img - 0.5) / 0.5  # Then normalize to [-1, 1]
 
         latent_out = self.latent_nn(latent)
-        print("latent OUT min:", latent_out.min().item(), "max:", latent_out.max().item())
-
+        # print("latent OUT min:", latent_out.min().item(), "max:", latent_out.max().item())
 
         # Step 3: latent reformer reconstruction
-        recon_img, mu, logvar = self.latent_reformer(topo_img, latent_out)
+        # recon_img, mu, logvar = self.latent_reformer(topo_img, latent_out)
 
         # Step 4: classification
-        logits = self.classifier(recon_img)
-        return recon_img, logits, mu, logvar, topo_img
+        logits = self.classifier(topo_img)
+        return topo_img, logits
 
 
 
@@ -90,13 +89,13 @@ if __name__ == "__main__":
     topo_model.load_state_dict(state_dict)
     topo_model.eval()
 
-    latent_reformer_path = args.latent_reformer_path if args.latent_reformer_path is not None else f'./models/{dataset_name}_latent_reformer.pth'
-    latent_reformer = LatentReformer()
-    latent_reformer.load_state_dict(torch.load(latent_reformer_path, map_location=device))
+    # latent_reformer_path = args.latent_reformer_path if args.latent_reformer_path is not None else f'./models/{dataset_name}_latent_reformer.pth'
+    # latent_reformer = LatentReformer()
+    # latent_reformer.load_state_dict(torch.load(latent_reformer_path, map_location=device))
 
-    latent_nn_path = args.latent_nn_path if args.latent_nn_path is not None else f'./models/{dataset_name}_latent_nn.pth'
-    latent_nn = LatentNet()
-    latent_nn.load_state_dict(torch.load(latent_nn_path, map_location=device))
+    # latent_nn_path = args.latent_nn_path if args.latent_nn_path is not None else f'./models/{dataset_name}_latent_nn.pth'
+    # latent_nn = LatentNet()
+    # latent_nn.load_state_dict(torch.load(latent_nn_path, map_location=device))
 
     classifier_path = args.classifier_path if args.classifier_path is not None else f'./models/{dataset_name}_classifier.pth'
     classifier = MNIST_CNN()
@@ -106,8 +105,8 @@ if __name__ == "__main__":
     # Combine models
     full_pipeline = FullTopoPipeline(
         topo_model=topo_model,
-        latent_reformer=latent_reformer,
-        latent_nn=latent_nn,
+        # latent_reformer=latent_reformer,
+        # latent_nn=latent_nn,
         classifier=classifier,
         device=device
     )
@@ -122,19 +121,14 @@ if __name__ == "__main__":
     with torch.no_grad():
         # MNIST images: batch_size=2, channels=1, height=28, width=28
         dummy_input = torch.randn(2, 1, 28, 28).to(device)
-        recon_img, logits, mu, logvar, _ = full_pipeline(dummy_input)
+        topo_img, logits = full_pipeline(dummy_input)
 
     print("Sanity Check:")
     print("Input shape:", dummy_input.shape)
-    print("Reconstructed image shape:", recon_img.shape)
+    # print("Reconstructed image shape:", recon_img.shape)
     print("Logits shape:", logits.shape)
-    print("Latent mu shape:", mu.shape)
-    print("Latent logvar shape:", logvar.shape)
-
-    # Evaluate on MNIST test set
-    from torchvision import datasets, transforms
-    from torch.utils.data import DataLoader
-    import torch.nn.functional as F
+    # print("Latent mu shape:", mu.shape)
+    # print("Latent logvar shape:", logvar.shape)
 
     # Evaluate on MNIST test set
     from torchvision import datasets, transforms
@@ -159,7 +153,7 @@ if __name__ == "__main__":
             images, labels = images.to(device), labels.to(device)
 
             # Forward through pipeline
-            recon_img, logits, mu, logvar, topo_img = full_pipeline(images)
+            topo_img, logits  = full_pipeline(images)
 
             # 1. Clean accuracy (now images are already normalized to [-1,1])
             clean_logits = full_pipeline.classifier(images)
@@ -171,50 +165,38 @@ if __name__ == "__main__":
             topo_pred = topo_logits.argmax(dim=1)
             topo_correct += (topo_pred == labels).sum().item()
 
-            # 3. Reconstructed accuracy
-            recon_pred = logits.argmax(dim=1)
-            recon_correct += (recon_pred == labels).sum().item()
+            # # 3. Reconstructed accuracy
+            # recon_pred = logits.argmax(dim=1)
+            # recon_correct += (recon_pred == labels).sum().item()
 
             total += labels.size(0)
 
     clean_acc = 100 * clean_correct / total
     topo_acc = 100 * topo_correct / total
-    recon_acc = 100 * recon_correct / total
+    # recon_acc = 100 * recon_correct / total
 
     print(f"MNIST Evaluation:")
     print(f"Clean accuracy: {clean_acc:.2f}%")
     print(f"Topo image accuracy: {topo_acc:.2f}%")
-    print(f"Reconstructed image accuracy: {recon_acc:.2f}%")
+    # print(f"Reconstructed image accuracy: {recon_acc:.2f}%")
 
-
-
-    from torchvision import transforms
-
-    # MNIST test set normalized to [-1, 1]
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.5,), (0.5,))  # (x - 0.5)/0.5 -> [-1, 1]
-    ])
-
-    test_dataset = datasets.MNIST(root="./data", train=False, download=True, transform=transform)
-    test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
 
     # Use first batch for visualization
     images, _ = next(iter(test_loader))
     images = images.to(device)
 
     with torch.no_grad():
-        recon_img, _, _, _, topo_img = full_pipeline(images)
+        topo_img, _,  = full_pipeline(images)
 
     # Images are already in [-1, 1], no denormalization needed
     clean_vis = images
     topo_vis = topo_img
-    recon_vis = recon_img
+    # recon_vis = recon_img
 
     print("Image ranges (should be roughly [-1,1]):")
     print("Clean images:", clean_vis.min().item(), clean_vis.max().item())
     print("Topo images:", topo_vis.min().item(), topo_vis.max().item())
-    print("Reconstructed images:", recon_vis.min().item(), recon_vis.max().item())
+    # print("Reconstructed images:", recon_vis.min().item(), recon_vis.max().item())
 
     # Update show_images to handle [-1,1]
     def show_images_neg1_to_1(clean, topo, recon, n=5):
@@ -230,11 +212,11 @@ if __name__ == "__main__":
             if i == 0: plt.ylabel("Topo")
             plt.axis('off')
 
-            plt.subplot(3, n, 2*n + i + 1)
-            plt.imshow(recon[i].cpu().squeeze(), cmap='gray', vmin=-1, vmax=1)
-            if i == 0: plt.ylabel("Reconstructed")
-            plt.axis('off')
+            # plt.subplot(3, n, 2*n + i + 1)
+            # plt.imshow(recon[i].cpu().squeeze(), cmap='gray', vmin=-1, vmax=1)
+            # if i == 0: plt.ylabel("Reconstructed")
+            # plt.axis('off')
         plt.tight_layout()
         plt.show()
 
-    show_images_neg1_to_1(clean_vis, topo_vis, recon_vis, n=5)
+    show_images_neg1_to_1(clean_vis, topo_vis, n=5)
