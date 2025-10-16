@@ -4,6 +4,13 @@ import numpy as np
 from tqdm import tqdm
 import torchattacks
 from combined import FullTopoPipeline as full_pipeline
+import sys
+import os
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.insert(0, parent_dir)
+from reformer import LatentReformer, LatentNet, MNIST_CNN
+from src.models.approx_based import TopologicallyRegularizedAutoencoder
+
 
 class PipelineWrapper(nn.Module):
     def __init__(self, pipeline):
