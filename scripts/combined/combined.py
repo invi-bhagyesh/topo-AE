@@ -110,3 +110,5 @@ if __name__ == "__main__":
     print("Logits shape:", logits.shape)
     print("Latent mu shape:", mu.shape)
     print("Latent logvar shape:", logvar.shape)
+    torch.save(full_pipeline.state_dict(), "./models/full_pipeline_combined.pth")
+    print("Full pipeline weights saved to ./models/full_pipeline_combined.pth")
