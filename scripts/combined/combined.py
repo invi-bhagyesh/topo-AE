@@ -202,7 +202,7 @@ if __name__ == "__main__":
     # print("Reconstructed images:", recon_vis.min().item(), recon_vis.max().item())
 
     # Update show_images to handle [-1,1]
-    def show_images_neg1_to_1(clean, topo, recon, n=5):
+    def show_images_neg1_to_1(clean, topo, n=5):
         plt.figure(figsize=(12, 4))
         for i in range(n):
             plt.subplot(3, n, i + 1)
