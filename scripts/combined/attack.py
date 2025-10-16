@@ -10,6 +10,8 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")
 sys.path.insert(0, parent_dir)
 from reformer import LatentReformer, LatentNet, MNIST_CNN
 from src.models.approx_based import TopologicallyRegularizedAutoencoder
+from torchvision import datasets, transforms
+from torch.utils.data import DataLoader
 
 
 class PipelineWrapper(nn.Module):
@@ -190,7 +192,7 @@ if __name__ == "__main__":
         classifier=classifier,
         device=device
     )
-    full_pipeline.load_state_dict(torch.load(args.args.full_pipeline_path, map_location=device))
+    full_pipeline.load_state_dict(torch.load(args.full_pipeline_path, map_location=device))
     full_pipeline.to(device)
     full_pipeline.eval()
 
