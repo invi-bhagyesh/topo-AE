@@ -126,7 +126,7 @@ if __name__ == "__main__":
     parser.add_argument("--n-restarts", type=int, default=1, help="Number of random restarts (where applicable)")
     parser.add_argument("--alpha", type=float, default=None, help="Step size for attacks that use alpha (optional)")
     parser.add_argument("--batch-save-freq", type=int, default=10, help="How often to print progress")
-    parser.add_argument("--full-pipeline-path", type=str, default=None, help="Path to saved full pipeline state_dict (.pth)")
+    parser.add_argument("--fullpipelinepath", type=str, default=None, help="Path to saved full pipeline state_dict (.pth)")
 
     args = parser.parse_args()
 
@@ -192,7 +192,7 @@ if __name__ == "__main__":
         classifier=classifier,
         device=device
     )
-    full_pipeline.load_state_dict(torch.load(args.full_pipeline_path, map_location=device))
+    full_pipeline.load_state_dict(torch.load(args.fullpipelinepath, map_location=device))
     full_pipeline.to(device)
     full_pipeline.eval()
 
