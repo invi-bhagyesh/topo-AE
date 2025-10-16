@@ -126,7 +126,7 @@ if __name__ == "__main__":
     parser.add_argument("--n-restarts", type=int, default=1, help="Number of random restarts (where applicable)")
     parser.add_argument("--alpha", type=float, default=None, help="Step size for attacks that use alpha (optional)")
     parser.add_argument("--batch-save-freq", type=int, default=10, help="How often to print progress")
-    parser.add_argument("--full_pipeline_path", type=str, default="./models/models--invi-bhagyesh--topo_combined/snapshots/79cb10032ff3b0c719a6a510a0c44162c564efed/MNIST_full_pipeline.pth", help="Path to saved full pipeline state_dict (.pth)")
+    parser.add_argument("--full_pipeline_path", type=str, default="/kaggle/input/reformer_topo/pytorch/default/2/MNIST_full_pipeline.pth", help="Path to saved full pipeline state_dict (.pth)")
     args = parser.parse_args()
 
     device = torch.device(args.device)
@@ -178,14 +178,14 @@ if __name__ == "__main__":
             lam=0.5002972000959738,
             toposig_kwargs={'match_edges': 'symmetric'}
         ) 
-    latent_reformer = LatentReformer()
-    latent_nn = LatentNet()
+    # latent_reformer = LatentReformer()
+    # latent_nn = LatentNet()
     classifier = MNIST_CNN()
 
     full_pipeline = FullTopoPipeline(
         topo_model=topo_model,
-        latent_reformer=latent_reformer,
-        latent_nn=latent_nn,
+        # latent_reformer=latent_reformer,
+        # latent_nn=latent_nn,
         classifier=classifier,
         device=device
     )
