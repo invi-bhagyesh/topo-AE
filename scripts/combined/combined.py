@@ -33,7 +33,7 @@ class FullTopoPipeline(nn.Module):
         topo_img = torch.clamp(topo_img, 0, 1)  # First clamp to [0, 1]
         topo_img = (topo_img - 0.5) / 0.5  # Then normalize to [-1, 1]
 
-        latent_out = self.latent_nn(latent)
+        # latent_out = self.latent_nn(latent)
         # print("latent OUT min:", latent_out.min().item(), "max:", latent_out.max().item())
 
         # Step 3: latent reformer reconstruction
