@@ -22,7 +22,7 @@ def set_seed(seed=42):
     os.environ["PYTHONHASHSEED"] = str(seed)
     print(f"Random seed set as {seed}")
 
-set_seed(42)
+
 
 
 def extract_latents_and_reconstructions(
@@ -293,7 +293,7 @@ def get_mnist_topo_loaders(npz_path, batch_size=64, val_split=0.1):
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     return train_loader, val_loader
 
-train_loader, val_loader = get_mnist_topo_loaders("/kaggle/input/invi_gan_mnist/pytorch/default/3/mnist_gan_inference/clean/mnist_train_complete.npz")
+
 
 
 """
@@ -362,17 +362,6 @@ class LatentReformer(nn.Module):
         return x_recon, mu, logvar
 
 
-bottleneck_h = 14
-bottleneck_w = 14
-latent_dim = 64
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-latent_reformer = LatentReformer()
-latent_nn = LatentNet(latent_dim=latent_dim, bottleneck_h=bottleneck_h, bottleneck_w=bottleneck_w)
-
-latent_reformer.to(device)
-latent_nn.to(device)
 
 import torch
 import torch.nn as nn
@@ -421,23 +410,16 @@ class MNIST_CNN(nn.Module):
         x = self.fc3(x)  # Softmax applied in loss function
         return x
 
-model = MNIST_CNN()
-model.load_state_dict(torch.load('/kaggle/input/classifiers/Pretrained_classifiers/mnist.pth', map_location='cpu'))
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model.to(device)
-model.eval()
 
 import torchmetrics
 def train_latent_vae(latent_reformer, latent_nn, model, train_loader, val_loader,
-                     epochs, lr, device, alpha=0.5, beta=2.0, warmup_epochs=0):
-# def train_latent_vae(latent_reformer, model, train_loader, val_loader,
-#                      epochs, lr, device, alpha=0.5, beta=2.0, warmup_epochs=0):
+                     epochs, lr, device, alpha=0.5, beta=2.0, warmup_epochs=10):
+
     latent_reformer.to(device)
     latent_nn.to(device)
     model.to(device)
     optimizer = torch.optim.Adam(
-        list(latent_reformer.parameters()) +
-        list(latent_nn.parameters()),
+        list(latent_reformer.parameters()) ,
         lr=lr
     )
     criterion_recon = nn.MSELoss()
@@ -511,7 +493,7 @@ def train_latent_vae(latent_reformer, latent_nn, model, train_loader, val_loader
 
                 latent_bottleneck = latent_nn(latent_vec)
                 recon_output, mu, logvar = latent_reformer(topo_img, latent_bottleneck)
-                # recon_output, mu, logvar = latent_reformer(topo_img)
+                
 
                 loss_recon = criterion_recon(recon_output, clean_img)
                 kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
@@ -538,8 +520,7 @@ def train_latent_vae(latent_reformer, latent_nn, model, train_loader, val_loader
     return latent_reformer
 
 
-latent_reformer = train_latent_vae(latent_reformer,latent_nn, model, train_loader, val_loader, epochs=50, lr=1e-3, device=device)
-# latent_reformer = train_latent_vae(latent_reformer, model, train_loader, val_loader, epochs=50, lr=1e-3, device=device)
+
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -601,8 +582,6 @@ def visualize_model_reconstruction(latent_reformer, latent_nn, val_loader, devic
             plt.show()
             break  # only visualize first batch
 
-visualize_model_reconstruction(latent_reformer,latent_nn, val_loader, device, n_samples=10)
-# visualize_model_reconstruction(latent_reformer, val_loader, device, n_samples=10)
 
 import torch
 import numpy as np
@@ -770,31 +749,70 @@ def evaluate_metrics_classifier_only(classifier, val_loader, device, num_classes
     return metrics
 
 
-train_loader, val_loader = get_mnist_topo_loaders("/kaggle/input/invi_gan_mnist/pytorch/default/3/mnist_gan_inference/clean/mnist_train_complete.npz")
 
-evaluate_metrics_classifier_only(model, val_loader, device)
 
-evaluate_metrics_topo_vs_reconstruction(model, latent_reformer, latent_nn, val_loader, device)
-# evaluate_metrics_topo_vs_reconstruction(model, latent_reformer, val_loader, device)
+# All code that executes anything automatically is wrapped below
+if __name__ == "__main__":
+    # Set random seed
+    set_seed(42)
 
-def get_advmnist_topo_loaders(npz_path, batch_size=64, val_split=0.1):
-    data = np.load(npz_path)
-    clean_images = data['original_images']
-    topo_images = data['reconstructed_images']
-    labels = data['labels']
-    latents = data['latents']
+    # Device setup
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    full_dataset = MNISTTopoDataset(clean_images, topo_images, labels, latents)
+    # Data loaders
+    train_loader, val_loader = get_mnist_topo_loaders(
+        "/kaggle/input/invi_gan_mnist/pytorch/default/3/mnist_gan_inference/clean/mnist_train_complete.npz"
+    )
 
-    full_loader = DataLoader(full_dataset, batch_size=batch_size, shuffle=False)
-    return full_loader
+    # Model parameters
+    bottleneck_h = 14
+    bottleneck_w = 14
+    latent_dim = 64
 
-adv_loader = get_advmnist_topo_loaders("/kaggle/input/invi_gan_mnist/pytorch/default/3/mnist_gan_inference/adversarial/adversarial_mnist_cw_strong_complete.npz")
+    # Instantiate models
+    latent_reformer = LatentReformer()
+    latent_nn = LatentNet(latent_dim=latent_dim, bottleneck_h=bottleneck_h, bottleneck_w=bottleneck_w)
+    model = MNIST_CNN()
+    model.load_state_dict(torch.load('/kaggle/input/classifiers/Pretrained_classifiers/mnist.pth', map_location='cpu'))
+    model.to(device)
+    model.eval()
+    latent_reformer.to(device)
+    latent_nn.to(device)
 
-evaluate_metrics_classifier_only(model, adv_loader, device)
+    # Train Latent VAE
+    latent_reformer = train_latent_vae(
+        latent_reformer, latent_nn, model,
+        train_loader, val_loader,
+        epochs=50, lr=1e-3, device=device
+    )
 
-adv_loader = get_advmnist_topo_loaders("/kaggle/input/invi_gan_mnist/pytorch/default/3/mnist_gan_inference/adversarial/adversarial_mnist_cw_weak_complete.npz")
-evaluate_metrics_classifier_only(model, adv_loader, device)
+    # Visualize reconstruction
+    visualize_model_reconstruction(latent_reformer, latent_nn, val_loader, device, n_samples=10)
 
-evaluate_metrics_topo_vs_reconstruction(model, latent_reformer, latent_nn, adv_loader, device)
-# evaluate_metrics_topo_vs_reconstruction(model, latent_reformer, adv_loader, device)
+    # Evaluation on validation set
+    evaluate_metrics_classifier_only(model, val_loader, device)
+    evaluate_metrics_topo_vs_reconstruction(model, latent_reformer, latent_nn, val_loader, device)
+
+    # Function to get adversarial MNIST loaders
+    def get_advmnist_topo_loaders(npz_path, batch_size=64, val_split=0.1):
+        data = np.load(npz_path)
+        clean_images = data['original_images']
+        topo_images = data['reconstructed_images']
+        labels = data['labels']
+        latents = data['latents']
+        full_dataset = MNISTTopoDataset(clean_images, topo_images, labels, latents)
+        full_loader = DataLoader(full_dataset, batch_size=batch_size, shuffle=False)
+        return full_loader
+
+    # Evaluation on adversarial sets
+    adv_loader_strong = get_advmnist_topo_loaders(
+        "/kaggle/input/invi_gan_mnist/pytorch/default/3/mnist_gan_inference/adversarial/adversarial_mnist_cw_strong_complete.npz"
+    )
+    evaluate_metrics_classifier_only(model, adv_loader_strong, device)
+
+    adv_loader_weak = get_advmnist_topo_loaders(
+        "/kaggle/input/invi_gan_mnist/pytorch/default/3/mnist_gan_inference/adversarial/adversarial_mnist_cw_weak_complete.npz"
+    )
+    evaluate_metrics_classifier_only(model, adv_loader_weak, device)
+
+    evaluate_metrics_topo_vs_reconstruction(model, latent_reformer, latent_nn, adv_loader_weak, device)
