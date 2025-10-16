@@ -43,30 +43,6 @@ class FullTopoPipeline(nn.Module):
 
 import matplotlib.pyplot as plt
 
-def show_images(clean, topo, recon, n=5):
-    """
-    Visualize first n images of each type side by side.
-    Assumes images are in range [-1, 1] or [0,1].
-    """
-    plt.figure(figsize=(12, 4))
-    for i in range(n):
-        # Clean
-        plt.subplot(3, n, i + 1)
-        plt.imshow(clean[i].cpu().squeeze(), cmap='gray', vmin=0, vmax=1)
-        if i == 0: plt.ylabel("Clean")
-        plt.axis('off')
-        # Topo
-        plt.subplot(3, n, n + i + 1)
-        plt.imshow(topo[i].cpu().squeeze(), cmap='gray', vmin=0, vmax=1)
-        if i == 0: plt.ylabel("Topo")
-        plt.axis('off')
-        # Reconstructed
-        plt.subplot(3, n, 2*n + i + 1)
-        plt.imshow(recon[i].cpu().squeeze(), cmap='gray', vmin=0, vmax=1)
-        if i == 0: plt.ylabel("Reconstructed")
-        plt.axis('off')
-    plt.tight_layout()
-    plt.show()
 
 
 if __name__ == "__main__":
@@ -194,26 +170,53 @@ if __name__ == "__main__":
 
 
 
-    # Use a small batch from test_loader
+    from torchvision import transforms
+
+    # MNIST test set normalized to [-1, 1]
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.5,), (0.5,))  # (x - 0.5)/0.5 -> [-1, 1]
+    ])
+
+    test_dataset = datasets.MNIST(root="./data", train=False, download=True, transform=transform)
+    test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
+
+    # Use first batch for visualization
     images, _ = next(iter(test_loader))
     images = images.to(device)
-
-    # Denormalize function
-    def denormalize(img, mean=0.5, std=0.5):
-        return img * std + mean
 
     with torch.no_grad():
         recon_img, _, _, _, topo_img = full_pipeline(images)
 
-    # Denormalize for plotting
-    clean_vis = denormalize(images)
-    topo_vis = denormalize(topo_img)
-    recon_vis = denormalize(recon_img)
+    # Images are already in [-1, 1], no denormalization needed
+    clean_vis = images
+    topo_vis = topo_img
+    recon_vis = recon_img
 
-    print("Image ranges after denormalization:")
+    print("Image ranges (should be roughly [-1,1]):")
     print("Clean images:", clean_vis.min().item(), clean_vis.max().item())
     print("Topo images:", topo_vis.min().item(), topo_vis.max().item())
     print("Reconstructed images:", recon_vis.min().item(), recon_vis.max().item())
 
-    show_images(clean_vis, topo_vis, recon_vis, n=5)
-    plt.savefig("mnist_pipeline_output.png")
+    # Update show_images to handle [-1,1]
+    def show_images_neg1_to_1(clean, topo, recon, n=5):
+        plt.figure(figsize=(12, 4))
+        for i in range(n):
+            plt.subplot(3, n, i + 1)
+            plt.imshow(clean[i].cpu().squeeze(), cmap='gray', vmin=-1, vmax=1)
+            if i == 0: plt.ylabel("Clean")
+            plt.axis('off')
+
+            plt.subplot(3, n, n + i + 1)
+            plt.imshow(topo[i].cpu().squeeze(), cmap='gray', vmin=-1, vmax=1)
+            if i == 0: plt.ylabel("Topo")
+            plt.axis('off')
+
+            plt.subplot(3, n, 2*n + i + 1)
+            plt.imshow(recon[i].cpu().squeeze(), cmap='gray', vmin=-1, vmax=1)
+            if i == 0: plt.ylabel("Reconstructed")
+            plt.axis('off')
+        plt.tight_layout()
+        plt.show()
+
+    show_images_neg1_to_1(clean_vis, topo_vis, recon_vis, n=5)
