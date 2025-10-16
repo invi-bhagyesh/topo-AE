@@ -149,10 +149,8 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dataset_name = args.dataset
 
-    if args.topo_model_path is not None:
-        model_path = args.topo_model_path
-    else:
-        model_path = f'./models/{dataset_name}_topo_model.pth'
+
+    # model_path = f'./models/{dataset_name}_topo_model.pth'
 
     if dataset_name == 'MNIST':
         topo_model = TopologicallyRegularizedAutoencoder(
