@@ -8,13 +8,6 @@ sys.path.insert(0, parent_dir)
 from reformer import LatentReformer, LatentNet, MNIST_CNN
 from src.models.approx_based import TopologicallyRegularizedAutoencoder
 
-parser = argparse.ArgumentParser(description='Run the full topo pipeline.')
-parser.add_argument('--dataset', type=str, default='MNIST', choices=['MNIST', 'CIFAR', 'SYN', 'EMNIST'], help='Dataset name')
-parser.add_argument('--topo_model_path', type=str, help='Path to the topo model checkpoint')
-# parser.add_argument('--latent_reformer_path', type=str, help='Path to the latent reformer checkpoint')
-# parser.add_argument('--latent_nn_path', type=str, help='Path to the latent NN checkpoint')
-parser.add_argument('--classifier_path', type=str, help='Path to the classifier checkpoint')
-args = parser.parse_args()
 
 class FullTopoPipeline(nn.Module):
     def __init__(self, topo_model, classifier, device='cpu'):
@@ -50,6 +43,13 @@ import matplotlib.pyplot as plt
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Run the full topo pipeline.')
+    parser.add_argument('--dataset', type=str, default='MNIST', choices=['MNIST', 'CIFAR', 'SYN', 'EMNIST'], help='Dataset name')
+    parser.add_argument('--topo_model_path', type=str, help='Path to the topo model checkpoint')
+    # parser.add_argument('--latent_reformer_path', type=str, help='Path to the latent reformer checkpoint')
+    # parser.add_argument('--latent_nn_path', type=str, help='Path to the latent NN checkpoint')
+    parser.add_argument('--classifier_path', type=str, help='Path to the classifier checkpoint')
+    args = parser.parse_args()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dataset_name = args.dataset
 
