@@ -83,7 +83,7 @@ class BPDAFunction(torch.autograd.Function):
 
 
 class BPDAWrapper(nn.Module):
-    def __init__(self, pipeline, fallback_mode="spatial"):
+    def __init__(self, pipeline, fallback_mode="identity"):
         super().__init__()
         self.pipeline = pipeline
         self.fallback_mode = fallback_mode
