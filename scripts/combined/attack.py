@@ -268,9 +268,11 @@ def generate_adversarial_dataset(
             attacker = torchattacks.SPSA(
                 model,
                 eps=eps,
-                steps=attack_kwargs.get('steps', 128),
-                samples=attack_kwargs.get('spsa_samples', 128),
-                alpha=attack_kwargs.get('alpha', 2/255)
+                nb_iter=attack_kwargs.get('steps', 128),       # number of iterations
+                nb_sample=attack_kwargs.get('spsa_samples', 128),  # SPSA samples
+                delta=attack_kwargs.get('delta', 0.01),       # optional
+                lr=attack_kwargs.get('alpha', 2/255),         # learning rate
+                max_batch_size=attack_kwargs.get('max_batch_size', 64)
             )
         except Exception as e:
             print(f"SPSA construction failed ({e}), falling back to PGD.")
