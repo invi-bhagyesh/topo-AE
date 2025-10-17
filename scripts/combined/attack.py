@@ -38,8 +38,25 @@ class BPDAFunction(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        # Surrogate gradient: pass gradient through unchanged to input.
-        grad_input = grad_output.clone()
+        x, = ctx.saved_tensors
+        pipeline = ctx.pipeline
+
+        # Preferred: use a differentiable surrogate if the pipeline provides one
+        if hasattr(pipeline, "surrogate") and pipeline.surrogate is not None:
+            # surrogate should return logits differentiably
+            surrogate_out = pipeline.surrogate(x)
+            grad_x = torch.autograd.grad(
+                surrogate_out, x, grad_outputs=grad_output, retain_graph=False, allow_unused=True
+            )[0]
+            if grad_x is None:
+                # fallback to broadcasting
+                grad_scalar = grad_output.detach().mean(dim=1).view(-1, 1, 1, 1)
+                grad_x = grad_scalar.expand_as(x)
+            return grad_x, None
+
+        # Fallback straight-through: broadcast logits-gradient to image-shape
+        grad_scalar = grad_output.detach().mean(dim=1).view(-1, 1, 1, 1)
+        grad_input = grad_scalar.expand_as(x)
         return grad_input, None
 
 
