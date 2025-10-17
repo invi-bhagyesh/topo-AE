@@ -79,9 +79,22 @@ class EOTWrapper(nn.Module):
 
     def forward(self, x):
         # Average logits over n stochastic forward passes.
+        # Ensure that the returned logits are differentiable w.r.t. the input.
         logits = None
         for _ in range(self.n_samples):
             out = self.pipeline(x)[1]
+
+            # If the pipeline returned logits that are detached (no grad),
+            # prefer a provided differentiable surrogate. If none exists,
+            # fall back to BPDAFunction.apply so backward uses the straight-through surrogate.
+            if not getattr(out, 'requires_grad', False):
+                if hasattr(self.pipeline, 'surrogate') and self.pipeline.surrogate is not None:
+                    out = self.pipeline.surrogate(x)
+                else:
+                    # BPDAFunction.apply will call the real pipeline in forward (no grad)
+                    # and provide surrogate/backprop behaviour in backward.
+                    out = BPDAFunction.apply(x, self.pipeline)
+
             if logits is None:
                 logits = out
             else:
