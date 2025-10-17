@@ -125,7 +125,16 @@ def generate_adversarial_dataset(
         model = EOTWrapper(pipeline, n_samples=attack_kwargs.get('eot_samples', 10)).to(device)
     else:
         model = PipelineWrapper(pipeline).to(device)
-    model.eval()
+
+    # For EOT you need stochastic behavior enabled in the pipeline. The main script
+    # sets pipeline.eval() earlier which disables dropout/rand transforms. Enable
+    # training mode on the pipeline so stochastic layers run during EOT sampling.
+    # This does not affect gradient computation inside the attack wrappers.
+    if 'eot' in atk_lower:
+        pipeline.train()
+        model.train()
+    else:
+        model.eval()
 
     # Initialize torchattacks
     if attack_type.lower() == 'pgd':
