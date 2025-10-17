@@ -92,7 +92,7 @@ class BPDA_EOT_Wrapper(nn.Module):
 def generate_adversarial_dataset(
     pipeline,
     dataloader,
-    attack_type='eod',
+    attack_type='eot',
     eps=0.3,
     output_path='adversarial_dataset.npz',
     device='cuda',
@@ -190,7 +190,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Generate adversarial dataset with multiple attacks")
-    parser.add_argument("--attack", type=str, default="eod", help="Attack type: apgd, pgd, autoattack, fgsm, cw, etc.")
+    parser.add_argument("--attack", type=str, default="eot", help="Attack type: apgd, pgd, autoattack, fgsm, cw, etc.")
     parser.add_argument("--eps", type=float, default=8/255, help="Perturbation budget (Linf or L2 depending on attack)")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="Device to run on")
     parser.add_argument("--dataset", type=str, default="MNIST", choices=["MNIST", "EMNIST"], help="Dataset to use for examples")
