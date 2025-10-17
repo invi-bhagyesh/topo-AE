@@ -22,6 +22,73 @@ class PipelineWrapper(nn.Module):
     def forward(self, x):
         return self.pipeline(x)[1]  # logits only
 
+
+class BPDAFunction(torch.autograd.Function):
+    """Simple BPDA: forward uses the full pipeline under torch.no_grad(); backward passes gradients through as if the operation were identity.
+    This approximates replacing a non-differentiable or shattered component with a differentiable surrogate that is the identity.
+    """
+
+    @staticmethod
+    def forward(ctx, x, pipeline):
+        ctx.save_for_backward(x)
+        ctx.pipeline = pipeline
+        with torch.no_grad():
+            out = pipeline(x)[1]
+        return out
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        # Surrogate gradient: pass gradient through unchanged to input.
+        grad_input = grad_output.clone()
+        return grad_input, None
+
+
+class BPDAWrapper(nn.Module):
+    def __init__(self, pipeline):
+        super().__init__()
+        self.pipeline = pipeline
+
+    def forward(self, x):
+        # Apply BPDAFunction which will call the real pipeline in forward (no grad)
+        # and provide a straight-through surrogate gradient in backward.
+        return BPDAFunction.apply(x, self.pipeline)
+
+
+class EOTWrapper(nn.Module):
+    def __init__(self, pipeline, n_samples=10):
+        super().__init__()
+        self.pipeline = pipeline
+        self.n_samples = n_samples
+
+    def forward(self, x):
+        # Average logits over n stochastic forward passes.
+        logits = None
+        for _ in range(self.n_samples):
+            out = self.pipeline(x)[1]
+            if logits is None:
+                logits = out
+            else:
+                logits = logits + out
+        return logits / float(self.n_samples)
+
+
+class BPDA_EOT_Wrapper(nn.Module):
+    def __init__(self, pipeline, n_samples=10):
+        super().__init__()
+        self.pipeline = pipeline
+        self.n_samples = n_samples
+
+    def forward(self, x):
+        # For each sample, run BPDAFunction forward (which itself calls pipeline under no_grad)
+        logits = None
+        for _ in range(self.n_samples):
+            out = BPDAFunction.apply(x, self.pipeline)
+            if logits is None:
+                logits = out
+            else:
+                logits = logits + out
+        return logits / float(self.n_samples)
+
 def generate_adversarial_dataset(
     pipeline,
     dataloader,
@@ -31,7 +98,16 @@ def generate_adversarial_dataset(
     device='cuda',
     **attack_kwargs
 ):
-    model = PipelineWrapper(pipeline).to(device)
+    # choose wrapper for BPDA/EOT if requested in attack_type or attack_kwargs
+    atk_lower = attack_type.lower()
+    if 'bpda_eot' in atk_lower or ('bpda' in atk_lower and 'eot' in atk_lower):
+        model = BPDA_EOT_Wrapper(pipeline, n_samples=attack_kwargs.get('eot_samples', 10)).to(device)
+    elif 'bpda' in atk_lower:
+        model = BPDAWrapper(pipeline).to(device)
+    elif 'eot' in atk_lower:
+        model = EOTWrapper(pipeline, n_samples=attack_kwargs.get('eot_samples', 10)).to(device)
+    else:
+        model = PipelineWrapper(pipeline).to(device)
     model.eval()
 
     # Initialize torchattacks
