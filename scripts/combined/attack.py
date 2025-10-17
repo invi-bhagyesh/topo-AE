@@ -38,6 +38,8 @@ class BPDAFunction(torch.autograd.Function):
         x, = ctx.saved_tensors
         pipeline = ctx.pipeline
         fallback_mode = getattr(ctx, "fallback_mode", "spatial")
+        print("[BPDA DEBUG] BPDA backward used for sample.")
+
 
         # 1) If pipeline provides a differentiable surrogate, use it (best)
         if hasattr(pipeline, "surrogate") and pipeline.surrogate is not None:
