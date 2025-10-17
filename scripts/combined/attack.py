@@ -55,8 +55,10 @@ class BPDAFunction(torch.autograd.Function):
             return grad_x, None
 
         # Fallback straight-through: broadcast logits-gradient to image-shape
-        grad_scalar = grad_output.detach().mean(dim=1).view(-1, 1, 1, 1)
-        grad_input = grad_scalar.expand_as(x)
+        grad_input = grad_output.clone()  # straight-through identity
+##################### STE FORM
+        # grad_scalar = grad_output.detach().mean(dim=1).view(-1, 1, 1, 1)
+        # grad_input = grad_scalar.expand_as(x)
         return grad_input, None
 
 
