@@ -141,20 +141,40 @@ def generate_adversarial_dataset(
         model.eval()
 
     # Initialize torchattacks
-    if attack_type.lower() == 'pgd':
-        print("Using PGD attack.")
+    # Determine base attack when wrappers like 'eot' or 'bpda' are present.
+    # Accept forms like: 'pgd', 'eot_pgd', 'bpda_eot_pgd', 'apgd', 'fgsm', 'cw', 'autoattack'
+    atk_lower = attack_type.lower()
+    # Allow explicit override via attack_kwargs['base_attack']
+    base_attack = attack_kwargs.get('base_attack')
+    if base_attack is None:
+        parts = atk_lower.split('_')
+        # remove wrapper tokens if present
+        parts = [p for p in parts if p not in ('eot', 'bpda')]
+        base_attack = parts[-1] if len(parts) > 0 else 'pgd'
+    base_attack = base_attack.lower()
+
+    if base_attack == 'pgd':
+        print(f"Using PGD attack (base for '{attack_type}').")
         attacker = torchattacks.PGD(model, eps=eps, alpha=attack_kwargs.get('alpha', 2/255), steps=attack_kwargs.get('steps', 40))
-    elif attack_type.lower() == 'fgsm':
-        print("Using FGSM attack.")
+    elif base_attack == 'fgsm':
+        print(f"Using FGSM attack (base for '{attack_type}').")
         attacker = torchattacks.FGSM(model, eps=eps)
-    elif attack_type.lower() == 'apgd':
-        print("Using APGD attack.")
+    elif base_attack in ('apgd', 'apgd_dlr'):
+        print(f"Using APGD attack (base for '{attack_type}').")
         attacker = torchattacks.APGD(model, eps=eps, steps=attack_kwargs.get('steps', 40))
-    elif attack_type.lower() == 'cw':
-        print("Using CW attack.")
+    elif base_attack == 'cw':
+        print(f"Using CW attack (base for '{attack_type}').")
         attacker = torchattacks.CW(model, c=attack_kwargs.get('c', 1e-4), steps=attack_kwargs.get('steps', 100))
+    elif base_attack == 'autoattack':
+        print(f"Using AutoAttack (base for '{attack_type}').")
+        # AutoAttack signature varies across versions. Try to construct with common kwargs and fallback.
+        try:
+            attacker = torchattacks.AutoAttack(model, norm=attack_kwargs.get('norm', 'Linf'), eps=eps, version=attack_kwargs.get('version', 'standard'))
+        except Exception as e:
+            print(f"AutoAttack construction failed ({e}), falling back to PGD.")
+            attacker = torchattacks.PGD(model, eps=eps, alpha=attack_kwargs.get('alpha', 2/255), steps=attack_kwargs.get('steps', 40))
     else:
-        raise ValueError(f"Unknown attack type: {attack_type}")
+        raise ValueError(f"Unknown base attack: {base_attack} parsed from attack_type='{attack_type}'. Provide a supported base attack or pass attack_kwargs['base_attack'].")
 
     all_clean, all_adv, all_labels = [], [], []
     correct_clean, correct_adv, total = 0, 0, 0
@@ -323,4 +343,4 @@ if __name__ == "__main__":
     print(f"Attack: {args.attack}, eps: {args.eps}, dataset: {args.dataset}")
     print(f"Clean accuracy: {result['clean_accuracy']:.2f}%")
     print(f"Adversarial accuracy: {result['adversarial_accuracy']:.2f}%")
-    print(f"Attack success rate: {result['attack_success_rate']:.2f}%")
+    print(f"Attack success rate: {result['attack_success_rate']:.2f}%") 
