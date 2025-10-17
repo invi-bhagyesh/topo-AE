@@ -265,13 +265,17 @@ def generate_adversarial_dataset(
     elif base_attack == 'spsa':
         print(f"Using SPSA attack (base for '{attack_type}').")
         try:
+            lr_val = attack_kwargs.get('alpha')
+            if lr_val is None:
+                lr_val = 2/255
+
             attacker = torchattacks.SPSA(
                 model,
                 eps=eps,
-                nb_iter=attack_kwargs.get('steps', 128),       # number of iterations
-                nb_sample=attack_kwargs.get('spsa_samples', 128),  # SPSA samples
-                delta=attack_kwargs.get('delta', 0.01),       # optional
-                lr=attack_kwargs.get('alpha', 2/255),         # learning rate
+                nb_iter=attack_kwargs.get('steps', 128),
+                nb_sample=attack_kwargs.get('spsa_samples', 128),
+                delta=attack_kwargs.get('delta', 0.01),
+                lr=lr_val,
                 max_batch_size=attack_kwargs.get('max_batch_size', 64)
             )
         except Exception as e:
