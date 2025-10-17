@@ -263,7 +263,20 @@ def generate_adversarial_dataset(
 
         # Clean accuracy
         with torch.no_grad():
-            logits_clean = model(clean_img)
+            if reparam_mode:
+                # compute latent for clean image and get logits via model which expects latent
+                if hasattr(pipeline, 'encode'):
+                    z_clean = pipeline.encode(clean_img)
+                elif hasattr(pipeline, 'encode_latent'):
+                    z_clean = pipeline.encode_latent(clean_img)
+                elif hasattr(pipeline, 'topo_model') and hasattr(pipeline.topo_model, 'encode'):
+                    z_clean = pipeline.topo_model.encode(clean_img)
+                else:
+                    raise AttributeError('Pipeline does not expose an encoder required for reparam attacks')
+                z_clean = z_clean.to(device)
+                logits_clean = model(z_clean)
+            else:
+                logits_clean = model(clean_img)
             pred_clean = torch.argmax(logits_clean, dim=1)
             correct_clean += (pred_clean == label).sum().item()
 
@@ -285,6 +298,18 @@ def generate_adversarial_dataset(
 
             # Run attacker in latent space. The attacker will perturb z tensors.
             z_adv = attacker(z_init, label)
+
+            # Ensure attacker did not alter tensor shape. If it did, try to restore it.
+            if z_adv.shape != z_init.shape:
+                try:
+                    z_adv = z_adv.view(z_init.shape)
+                except Exception:
+                    if z_adv.numel() == z_init.numel():
+                        z_adv = z_adv.view(z_init.shape)
+                    else:
+                        raise RuntimeError(f"Attacker returned shape {z_adv.shape} but expected {z_init.shape}")
+
+            z_adv = z_adv.to(device)
 
             # map back to image space using the same resolution logic as ReparamWrapper
             if hasattr(pipeline, 'reparameterize'):
