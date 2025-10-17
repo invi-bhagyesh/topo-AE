@@ -38,7 +38,6 @@ class BPDAFunction(torch.autograd.Function):
         x, = ctx.saved_tensors
         pipeline = ctx.pipeline
         fallback_mode = getattr(ctx, "fallback_mode", "spatial")
-        print("[BPDA DEBUG] BPDA backward used for sample.")
 
 
         # 1) If pipeline provides a differentiable surrogate, use it (best)
@@ -263,6 +262,20 @@ def generate_adversarial_dataset(
     elif base_attack == 'cw':
         print(f"Using CW attack (base for '{attack_type}').")
         attacker = torchattacks.CW(model, c=attack_kwargs.get('c', 1e-4), steps=attack_kwargs.get('steps', 100))
+    elif base_attack == 'spsa':
+        print(f"Using SPSA attack (base for '{attack_type}').")
+        try:
+            attacker = torchattacks.SPSA(
+                model,
+                eps=eps,
+                steps=attack_kwargs.get('steps', 128),
+                samples=attack_kwargs.get('spsa_samples', 128),
+                alpha=attack_kwargs.get('alpha', 2/255)
+            )
+        except Exception as e:
+            print(f"SPSA construction failed ({e}), falling back to PGD.")
+            attacker = torchattacks.PGD(model, eps=eps, alpha=attack_kwargs.get('alpha', 2/255), steps=attack_kwargs.get('steps', 40))
+        
     elif base_attack == 'autoattack':
         print(f"Using AutoAttack (base for '{attack_type}').")
         # AutoAttack signature varies across versions. Try to construct with common kwargs and fallback.
