@@ -1,1 +1,1 @@
-from .full_pipeline import FullTopoPipeline
+from .combined import FullTopoPipeline
