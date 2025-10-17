@@ -113,6 +113,7 @@ class EOTWrapper(nn.Module):
         return logits / float(self.n_samples)
 
 
+
 class BPDA_EOT_Wrapper(nn.Module):
     def __init__(self, pipeline, n_samples=10):
         super().__init__()
@@ -130,6 +131,53 @@ class BPDA_EOT_Wrapper(nn.Module):
                 logits = logits + out
         return logits / float(self.n_samples)
 
+
+# --- Inserted: ReparamWrapper ---
+class ReparamWrapper(nn.Module):
+    """Treat inputs as latent `z` tensors.
+
+    This wrapper maps z -> x using a differentiable reparameterization/decoder
+    provided by the pipeline. The wrapper then returns logits for the decoded
+    image. The wrapper looks for a decoder in this order:
+      1. pipeline.reparameterize
+      2. pipeline.reparameterize_from_latent
+      3. pipeline.decode_from_latent
+      4. pipeline.topo_model.decode
+
+    If none exists the wrapper raises an AttributeError.
+    """
+
+    def __init__(self, pipeline):
+        super().__init__()
+        self.pipeline = pipeline
+
+        # resolve decode function
+        self._decode_fn = None
+        if hasattr(pipeline, 'reparameterize'):
+            self._decode_fn = pipeline.reparameterize
+        elif hasattr(pipeline, 'reparameterize_from_latent'):
+            self._decode_fn = pipeline.reparameterize_from_latent
+        elif hasattr(pipeline, 'decode_from_latent'):
+            self._decode_fn = pipeline.decode_from_latent
+        elif hasattr(pipeline, 'topo_model') and hasattr(pipeline.topo_model, 'decode'):
+            self._decode_fn = pipeline.topo_model.decode
+
+        if self._decode_fn is None:
+            raise AttributeError('Pipeline does not expose a reparameterization/decoder required for reparam attacks')
+
+    def forward(self, z):
+        # z is a latent tensor. Map to image via decode fn then run pipeline to get logits.
+        x = self._decode_fn(z)
+
+        # prefer a differentiable surrogate when available
+        if hasattr(self.pipeline, 'surrogate') and self.pipeline.surrogate is not None:
+            return self.pipeline.surrogate(x)
+
+        # If pipeline returns logits with no grad, we still want a path from z to logits
+        # so call pipeline(x) without torch.no_grad so gradients flow through decode_fn.
+        out = self.pipeline(x)[1]
+        return out
+
 def generate_adversarial_dataset(
     pipeline,
     dataloader,
@@ -139,26 +187,28 @@ def generate_adversarial_dataset(
     device='cuda',
     **attack_kwargs
 ):
-    # choose wrapper for BPDA/EOT if requested in attack_type or attack_kwargs
+    # choose wrapper for BPDA/EOT/Reparameterization if requested in attack_type or attack_kwargs
     atk_lower = attack_type.lower()
+    reparam_mode = False
     if 'bpda_eot' in atk_lower or ('bpda' in atk_lower and 'eot' in atk_lower):
         print("Using BPDA + EOT wrapper for the pipeline.")
         model = BPDA_EOT_Wrapper(pipeline, n_samples=attack_kwargs.get('eot_samples', 10)).to(device)
-    elif 'bpda' in atk_lower:
+    elif 'bpda' in atk_lower and 'reparam' not in atk_lower:
         print("Using BPDA wrapper for the pipeline.")
         model = BPDAWrapper(pipeline).to(device)
-    elif 'eot' in atk_lower:
+    elif 'eot' in atk_lower and 'reparam' not in atk_lower:
         print("Using EOT wrapper for the pipeline.")
         model = EOTWrapper(pipeline, n_samples=attack_kwargs.get('eot_samples', 10)).to(device)
+    elif 'reparam' in atk_lower:
+        print("Using Reparameterization wrapper for the pipeline. Attacks will be performed in latent space.")
+        reparam_mode = True
+        model = ReparamWrapper(pipeline).to(device)
     else:
         model = PipelineWrapper(pipeline).to(device)
 
-    # For EOT you need stochastic behavior enabled in the pipeline. The main script
-    # sets pipeline.eval() earlier which disables dropout/rand transforms. Enable
-    # training mode on the pipeline so stochastic layers run during EOT sampling.
-    # This does not affect gradient computation inside the attack wrappers.
-    if 'eot' in atk_lower:
-        print("Setting pipeline to train mode for EOT.")
+    # For EOT or reparameterization you need stochastic behavior enabled in the pipeline.
+    if 'eot' in atk_lower or reparam_mode:
+        print("Setting pipeline to train mode for EOT or reparameterization.")
         pipeline.train()
         model.train()
     else:
@@ -218,13 +268,54 @@ def generate_adversarial_dataset(
             correct_clean += (pred_clean == label).sum().item()
 
         # Generate adversarial examples
-        x_adv = attacker(clean_img, label)
+        if reparam_mode:
+            # compute initial latent z from clean image
+            # try pipeline.encode, then pipeline.encode_latent, then pipeline.topo_model.encode
+            if hasattr(pipeline, 'encode'):
+                z_init = pipeline.encode(clean_img)
+            elif hasattr(pipeline, 'encode_latent'):
+                z_init = pipeline.encode_latent(clean_img)
+            elif hasattr(pipeline, 'topo_model') and hasattr(pipeline.topo_model, 'encode'):
+                z_init = pipeline.topo_model.encode(clean_img)
+            else:
+                raise AttributeError('Pipeline does not expose an encoder required for reparam attacks')
 
-        # Adversarial accuracy
-        with torch.no_grad():
-            logits_adv = model(x_adv)
-            pred_adv = torch.argmax(logits_adv, dim=1)
-            correct_adv += (pred_adv == label).sum().item()
+            z_init = z_init.detach().to(device)
+            z_init.requires_grad_(True)
+
+            # Run attacker in latent space. The attacker will perturb z tensors.
+            z_adv = attacker(z_init, label)
+
+            # map back to image space using the same resolution logic as ReparamWrapper
+            if hasattr(pipeline, 'reparameterize'):
+                x_adv = pipeline.reparameterize(z_adv)
+            elif hasattr(pipeline, 'reparameterize_from_latent'):
+                x_adv = pipeline.reparameterize_from_latent(z_adv)
+            elif hasattr(pipeline, 'decode_from_latent'):
+                x_adv = pipeline.decode_from_latent(z_adv)
+            elif hasattr(pipeline, 'topo_model') and hasattr(pipeline.topo_model, 'decode'):
+                x_adv = pipeline.topo_model.decode(z_adv)
+            else:
+                raise AttributeError('Pipeline does not expose a decoder required for reparam attacks')
+
+            # Adversarial accuracy on decoded images
+            with torch.no_grad():
+                # get logits for decoded images. prefer a surrogate if available on the pipeline
+                if hasattr(pipeline, 'surrogate') and pipeline.surrogate is not None:
+                    logits_adv = pipeline.surrogate(x_adv)
+                else:
+                    logits_adv = pipeline(x_adv)[1]
+                pred_adv = torch.argmax(logits_adv, dim=1)
+                correct_adv += (pred_adv == label).sum().item()
+
+        else:
+            x_adv = attacker(clean_img, label)
+
+            # Adversarial accuracy
+            with torch.no_grad():
+                logits_adv = model(x_adv)
+                pred_adv = torch.argmax(logits_adv, dim=1)
+                correct_adv += (pred_adv == label).sum().item()
 
         total += clean_img.size(0)
         all_clean.append(clean_img.cpu().numpy())
