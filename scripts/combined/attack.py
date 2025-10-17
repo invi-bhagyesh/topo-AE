@@ -118,10 +118,13 @@ def generate_adversarial_dataset(
     # choose wrapper for BPDA/EOT if requested in attack_type or attack_kwargs
     atk_lower = attack_type.lower()
     if 'bpda_eot' in atk_lower or ('bpda' in atk_lower and 'eot' in atk_lower):
+        print("Using BPDA + EOT wrapper for the pipeline.")
         model = BPDA_EOT_Wrapper(pipeline, n_samples=attack_kwargs.get('eot_samples', 10)).to(device)
     elif 'bpda' in atk_lower:
+        print("Using BPDA wrapper for the pipeline.")
         model = BPDAWrapper(pipeline).to(device)
     elif 'eot' in atk_lower:
+        print("Using EOT wrapper for the pipeline.")
         model = EOTWrapper(pipeline, n_samples=attack_kwargs.get('eot_samples', 10)).to(device)
     else:
         model = PipelineWrapper(pipeline).to(device)
@@ -131,6 +134,7 @@ def generate_adversarial_dataset(
     # training mode on the pipeline so stochastic layers run during EOT sampling.
     # This does not affect gradient computation inside the attack wrappers.
     if 'eot' in atk_lower:
+        print("Setting pipeline to train mode for EOT.")
         pipeline.train()
         model.train()
     else:
@@ -138,12 +142,16 @@ def generate_adversarial_dataset(
 
     # Initialize torchattacks
     if attack_type.lower() == 'pgd':
+        print("Using PGD attack.")
         attacker = torchattacks.PGD(model, eps=eps, alpha=attack_kwargs.get('alpha', 2/255), steps=attack_kwargs.get('steps', 40))
     elif attack_type.lower() == 'fgsm':
+        print("Using FGSM attack.")
         attacker = torchattacks.FGSM(model, eps=eps)
     elif attack_type.lower() == 'apgd':
+        print("Using APGD attack.")
         attacker = torchattacks.APGD(model, eps=eps, steps=attack_kwargs.get('steps', 40))
     elif attack_type.lower() == 'cw':
+        print("Using CW attack.")
         attacker = torchattacks.CW(model, c=attack_kwargs.get('c', 1e-4), steps=attack_kwargs.get('steps', 100))
     else:
         raise ValueError(f"Unknown attack type: {attack_type}")
@@ -216,7 +224,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Generate adversarial dataset with multiple attacks")
-    parser.add_argument("--attack", type=str, default="eot", help="Attack type: apgd, pgd, autoattack, fgsm, cw, etc.")
+    parser.add_argument("--attack", type=str, default="bpda_eot", help="Attack type: apgd, pgd, autoattack, fgsm, cw, etc.")
     parser.add_argument("--eps", type=float, default=8/255, help="Perturbation budget (Linf or L2 depending on attack)")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="Device to run on")
     parser.add_argument("--dataset", type=str, default="MNIST", choices=["MNIST", "EMNIST"], help="Dataset to use for examples")
