@@ -24,14 +24,11 @@ class PipelineWrapper(nn.Module):
 
 
 class BPDAFunction(torch.autograd.Function):
-    """Simple BPDA: forward uses the full pipeline under torch.no_grad(); backward passes gradients through as if the operation were identity.
-    This approximates replacing a non-differentiable or shattered component with a differentiable surrogate that is the identity.
-    """
-
     @staticmethod
-    def forward(ctx, x, pipeline):
+    def forward(ctx, x, pipeline, fallback_mode="spatial"):
         ctx.save_for_backward(x)
         ctx.pipeline = pipeline
+        ctx.fallback_mode = fallback_mode
         with torch.no_grad():
             out = pipeline(x)[1]
         return out
@@ -40,37 +37,60 @@ class BPDAFunction(torch.autograd.Function):
     def backward(ctx, grad_output):
         x, = ctx.saved_tensors
         pipeline = ctx.pipeline
+        fallback_mode = getattr(ctx, "fallback_mode", "spatial")
 
-        # Preferred: use a differentiable surrogate if the pipeline provides one
+        # 1) If pipeline provides a differentiable surrogate, use it (best)
         if hasattr(pipeline, "surrogate") and pipeline.surrogate is not None:
-            # surrogate should return logits differentiably
-            surrogate_out = pipeline.surrogate(x)
+            surrogate_out = pipeline.surrogate(x)  # logits-like, differentiable
+            # compute gradient of surrogate logits wrt input
             grad_x = torch.autograd.grad(
                 surrogate_out, x, grad_outputs=grad_output, retain_graph=False, allow_unused=True
             )[0]
-            if grad_x is None:
-                # fallback to broadcasting
-                grad_scalar = grad_output.detach().mean(dim=1).view(-1, 1, 1, 1)
-                grad_x = grad_scalar.expand_as(x)
-            return grad_x, None
+            if grad_x is not None:
+                return grad_x, None, None
+            # if grad_x is None, fall through to fallback
 
-        # Fallback straight-through: broadcast logits-gradient to image-shape
-        grad_input = grad_output.clone()  # straight-through identity
-##################### STE FORM
-        # grad_scalar = grad_output.detach().mean(dim=1).view(-1, 1, 1, 1)
-        # grad_input = grad_scalar.expand_as(x)
-        return grad_input, None
+        # 2) Fallbacks (choose one)
+        # grad_output shape: (B, C) typically (logits)
+        # We'll convert to (B, 1, 1, 1) and expand, but keep per-sample info.
+
+        # Option B: identity-ste (preserve per-sample gradient magnitude)
+        if fallback_mode == "identity":
+            # combine class gradients into a single scalar per sample
+            # sum is slightly stronger than mean (scale doesn't matter for PGD step, but keep sum)
+            grad_scalar = grad_output.detach().sum(dim=1).view(-1, 1, 1, 1)
+            grad_input = grad_scalar.expand_as(x)
+            return grad_input, None, None
+
+        # Option C: spatial-ste (preserve some spatial structure heuristically)
+        # create scalar map then modulate by input's normalized deviation from mean
+        if fallback_mode == "spatial":
+            eps = 1e-6
+            grad_scalar = grad_output.detach().sum(dim=1).view(-1, 1, 1, 1)
+            # normalized input (zero mean, scaled) as a spatial mask
+            x_mean = x.mean(dim=(1, 2, 3), keepdim=True)
+            x_norm = (x - x_mean) / (x.abs().mean(dim=(1,2,3), keepdim=True) + eps)
+            # scale and clamp to avoid explosion
+            mask = x_norm.clamp(-5.0, 5.0)
+            grad_input = grad_scalar * (0.5 + 0.5 * mask)  # keep positive baseline
+            return grad_input, None, None
+
+        # Default fall back to old behaviour if unknown mode
+        grad_scalar = grad_output.detach().mean(dim=1).view(-1, 1, 1, 1)
+        grad_input = grad_scalar.expand_as(x)
+        return grad_input, None, None
+
 
 
 class BPDAWrapper(nn.Module):
-    def __init__(self, pipeline):
+    def __init__(self, pipeline, fallback_mode="spatial"):
         super().__init__()
         self.pipeline = pipeline
+        self.fallback_mode = fallback_mode
 
     def forward(self, x):
-        # Apply BPDAFunction which will call the real pipeline in forward (no grad)
-        # and provide a straight-through surrogate gradient in backward.
-        return BPDAFunction.apply(x, self.pipeline)
+        return BPDAFunction.apply(x, self.pipeline, self.fallback_mode)
+
 
 
 class EOTWrapper(nn.Module):
