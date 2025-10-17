@@ -82,18 +82,29 @@ class EOTWrapper(nn.Module):
         # Ensure that the returned logits are differentiable w.r.t. the input.
         logits = None
         for _ in range(self.n_samples):
-            out = self.pipeline(x)[1]
 
-            # If the pipeline returned logits that are detached (no grad),
-            # prefer a provided differentiable surrogate. If none exists,
-            # fall back to BPDAFunction.apply so backward uses the straight-through surrogate.
-            if not getattr(out, 'requires_grad', False):
+            # out = self.pipeline(x)[1]
+            # # If the pipeline returned logits that are detached (no grad),
+            # # prefer a provided differentiable surrogate. If none exists,
+            # # fall back to BPDAFunction.apply so backward uses the straight-through surrogate.
+            # if not getattr(out, 'requires_grad', False):
+            #     if hasattr(self.pipeline, 'surrogate') and self.pipeline.surrogate is not None:
+            #         out = self.pipeline.surrogate(x)
+            #     else:
+            #         # BPDAFunction.apply will call the real pipeline in forward (no grad)
+            #         # and provide surrogate/backprop behaviour in backward.
+            #         out = BPDAFunction.apply(x, self.pipeline)
+
+################# Remove for ckt
+            out = self.pipeline(x)[1]
+            if not out.requires_grad:
                 if hasattr(self.pipeline, 'surrogate') and self.pipeline.surrogate is not None:
                     out = self.pipeline.surrogate(x)
                 else:
-                    # BPDAFunction.apply will call the real pipeline in forward (no grad)
-                    # and provide surrogate/backprop behaviour in backward.
-                    out = BPDAFunction.apply(x, self.pipeline)
+                    # Force differentiability by cloning input and setting requires_grad=True
+                    x_ = x.clone().detach().requires_grad_(True)
+                    out = self.pipeline(x_)[1]  
+##################
 
             if logits is None:
                 logits = out
