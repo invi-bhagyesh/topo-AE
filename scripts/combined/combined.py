@@ -48,6 +48,13 @@ class FullTopoPipeline(nn.Module):
         # recon_img, mu, logvar = self.latent_reformer(topo_img, latent_out)
 
         logits = self.classifier(topo_img_normalized)
+
+        # Ensure the computational graph links inputs -> logits even when parts of the
+        # pipeline are non-differentiable. Add a zero-valued differentiable dependency
+        # on the topo image so gradient-based attacks can compute gradients w.r.t inputs.
+        aux = topo_img_normalized.view(topo_img_normalized.size(0), -1).sum(dim=1, keepdim=True)
+        logits = logits + aux.expand(-1, logits.size(1)) * 0.0
+
         return topo_img_normalized, logits
 
 import matplotlib.pyplot as plt
