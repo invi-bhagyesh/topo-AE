@@ -549,6 +549,8 @@ if __name__ == "__main__":
     # latent_nn = LatentNet()
     classifier = MNIST_CNN()
 
+    # Create full pipeline with histogram matching disabled by default for attack generation.
+    # Histogram matching will be enabled only during evaluation inside generate_adversarial_dataset.
     full_pipeline = FullTopoPipeline(
         topo_model=topo_model,
         # latent_reformer=latent_reformer,
@@ -556,7 +558,7 @@ if __name__ == "__main__":
         classifier=classifier,
         device=device,
         reference_image=reference_image,
-        use_hist_match=True  # optional flag
+        use_hist_match=False  # disable by default to ensure attacks see differentiable graph
     )
     full_pipeline.load_state_dict(torch.load(args.full_pipeline_path, map_location=device))
     full_pipeline.to(device)
