@@ -466,9 +466,10 @@ def generate_adversarial_dataset(
         with torch.no_grad():
             for x in torch.utils.data.DataLoader(torch.tensor(data), batch_size=64):
                 x = x.to(device)
-                logits = eval_model(x)
-                if isinstance(logits, tuple):
-                    logits = logits[1]
+                if reparam_mode:
+                    logits = eval_model(x)
+                else:
+                    logits = eval_model(x)[1] if isinstance(eval_model(x), tuple) else eval_model(x)
                 preds.append(logits.detach().cpu().numpy())
         return np.argmax(np.concatenate(preds, axis=0), axis=1)
 
