@@ -31,7 +31,6 @@ class VGG_FeatureExtractor(nn.Module):
     def forward(self, input):
         return self.ConvNet(input)
 
-
 class ResNet_FeatureExtractor(nn.Module):
     """ FeatureExtractor of FAN (http://openaccess.thecvf.com/content_ICCV_2017/papers/Cheng_Focusing_Attention_Towards_ICCV_2017_paper.pdf) """
 
@@ -76,7 +75,6 @@ class BasicBlock(nn.Module):
         out = self.relu(out)
 
         return out
-
 
 class ResNet(nn.Module):
 
@@ -173,9 +171,6 @@ class ResNet(nn.Module):
 
         return x
 
-
-
-
 class TPS_SpatialTransformerNetwork(nn.Module):
     """ Rectification Network of RARE, namely TPS(thin-plate spline) based STN """
 
@@ -209,3 +204,199 @@ class TPS_SpatialTransformerNetwork(nn.Module):
             batch_I_r = F.grid_sample(batch_I, build_P_prime_reshape, padding_mode='border')
 
         return batch_I_r
+
+class BidirectionalLSTM(nn.Module):
+
+    def __init__(self, input_size, hidden_size, output_size):
+        super(BidirectionalLSTM, self).__init__()
+        self.rnn = nn.LSTM(input_size, hidden_size, bidirectional=True, batch_first=True)
+        self.linear = nn.Linear(hidden_size * 2, output_size)
+
+    def forward(self, input):
+        """
+        input : visual feature [batch_size x T x input_size]
+        output : contextual feature [batch_size x T x output_size]
+        """
+        self.rnn.flatten_parameters()
+        recurrent, _ = self.rnn(input)  # batch_size x T x input_size -> batch_size x T x (2*hidden_size)
+        output = self.linear(recurrent)  # batch_size x T x output_size
+        return output
+
+class CTCLabelConverter(object):
+    """ Convert between text-label and text-index """
+
+    def __init__(self, character):
+        # character (str): set of the possible characters.
+        dict_character = list(character)
+
+        self.dict = {}
+        for i, char in enumerate(dict_character):
+            # NOTE: 0 is reserved for 'CTCblank' token required by CTCLoss
+            self.dict[char] = i + 1
+
+        self.character = ['[CTCblank]'] + dict_character  # dummy '[CTCblank]' token for CTCLoss (index 0)
+
+    def encode(self, text, batch_max_length=25):
+        """convert text-label into text-index.
+        input:
+            text: text labels of each image. Note:in our dataset,label is list, and len=batch_size
+            batch_max_length: max length of text label in the batch. 25 by default
+
+        output:
+            text: text index for CTCLoss. [batch_size, batch_max_length]
+            length: length of each text. [batch_size]
+        """
+        length = [len(s) for s in text]
+
+        # The index used for padding (=0) would not affect the CTC loss calculation.
+        batch_text = torch.LongTensor(len(text), batch_max_length).fill_(0)
+        for i, t in enumerate(text):
+            text = list(t)
+            text = [self.dict[char] for char in text]  #index of char in text, shape=[len(text)]单词长度
+            batch_text[i][:len(text)] = torch.LongTensor(text)
+
+        return (batch_text.to(device), torch.IntTensor(length).to(device))  # [b, 25], list:b(16)
+
+    def decode(self, text_index, length):
+        """ convert text-index into text-label. """
+        texts = []
+        index = 0
+        for l in length:
+            t = text_index[index:index + l]
+
+            char_list = []
+            for i in range(l):
+                if t[i] != 0 and (not (i > 0 and t[i - 1] == t[i])):  # removing repeated characters and blank.
+                    char_list.append(self.character[t[i]])
+            text = ''.join(char_list)
+
+            texts.append(text)
+            index += l
+        return texts
+
+class AttnLabelConverter(object):
+    """ Convert between text-label and text-index """
+
+    def __init__(self, character):
+        # character (str): set of the possible characters.
+        # [GO] for the start token of the attention decoder. [s] for end-of-sentence token.
+        list_token = ['[GO]', '[s]']  # ['[s]','[UNK]','[PAD]','[GO]']
+        list_character = list(character)
+        self.character = list_token + list_character
+
+        self.dict = {}
+        for i, char in enumerate(self.character):
+            # print(i, char)
+            self.dict[char] = i
+
+    def encode(self, text, batch_max_length=25):
+        """ convert text-label into text-index.
+        input:
+            text: text labels of each image. [batch_size]
+            batch_max_length: max length of text label in the batch. 25 by default
+
+        output:
+            text : the input of attention decoder. [batch_size x (max_length+2)] +1 for [GO] token and +1 for [s] token.
+                text[:, 0] is [GO] token and text is padded with [GO] token after [s] token.
+            length : the length of output of attention decoder, which count [s] token also. [3, 7, ....] [batch_size]
+        """
+        length = [len(s) + 1 for s in text]  # +1 for [s] at end of sentence.
+        # batch_max_length = max(length) # this is not allowed for multi-gpu setting
+        batch_max_length += 1
+        # additional +1 for [GO] at first step. batch_text is padded with [GO] token after [s] token.
+        batch_text = torch.LongTensor(len(text), batch_max_length + 1).fill_(0)
+        for i, t in enumerate(text):
+            text = list(t)
+            text.append('[s]')
+            text = [self.dict[char] for char in text]
+            batch_text[i][1:1 + len(text)] = torch.LongTensor(text)  # batch_text[:, 0] = [GO] token
+        return (batch_text.to(device), torch.IntTensor(length).to(device))
+
+    def decode(self, text_index, length):
+        """ convert text-index into text-label. """
+        texts = []
+        for index, l in enumerate(length):
+            text = ''.join([self.character[i] for i in text_index[index, :]])
+            texts.append(text)
+        return texts
+
+class Logger(object):
+    def __init__(self, filename = "train.log"):
+        self.terminal =sys.stdout
+        self.log = open(filename,"w")
+
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+        
+    def flush(self):
+        pass
+
+class Model(nn.Module):
+
+    def __init__(self, opt):
+        super(Model, self).__init__()
+        self.opt = opt
+        self.stages = {'Trans': opt.Transformation, 'Feat': opt.FeatureExtraction,
+                       'Seq': opt.SequenceModeling, 'Pred': opt.Prediction}
+
+        """ Transformation : output is rectified image [batch_size x I_channel_num x I_r_height x I_r_width] """
+        if opt.Transformation == 'TPS':
+            self.Transformation = TPS_SpatialTransformerNetwork(
+                F=opt.num_fiducial, I_size=(opt.imgH, opt.imgW), I_r_size=(opt.imgH, opt.imgW), I_channel_num=opt.input_channel)
+        else:
+            print('No Transformation module specified')
+
+
+        """ FeatureExtraction """
+        if opt.FeatureExtraction == 'VGG':
+            self.FeatureExtraction = VGG_FeatureExtractor(opt.input_channel, opt.output_channel) # 512x1x24
+        elif opt.FeatureExtraction == 'ResNet':
+            self.FeatureExtraction = ResNet_FeatureExtractor(opt.input_channel, opt.output_channel)
+        else:
+            raise Exception('No FeatureExtraction module specified')
+        self.FeatureExtraction_output = opt.output_channel  # int(imgH/16-1) * 512
+        self.AdaptiveAvgPool = nn.AdaptiveAvgPool2d((None, 1))  # Transform final (imgH/16-1) -> 1
+
+        """ Sequence modeling"""
+        if opt.SequenceModeling == 'BiLSTM':
+            self.SequenceModeling = nn.Sequential(
+                BidirectionalLSTM(self.FeatureExtraction_output, opt.hidden_size, opt.hidden_size), 
+                BidirectionalLSTM(opt.hidden_size, opt.hidden_size, opt.hidden_size))   # hidden_size = 256, output is [batch_size x T x output_size]
+            self.SequenceModeling_output = opt.hidden_size
+        else:
+            print('No SequenceModeling module specified')
+            self.SequenceModeling_output = self.FeatureExtraction_output
+
+        """ Prediction """
+        if opt.Prediction == 'CTC':
+            self.Prediction = nn.Linear(self.SequenceModeling_output, opt.num_class)
+        elif opt.Prediction == 'Attn':
+            self.Prediction = Attention(self.SequenceModeling_output, opt.hidden_size, opt.num_class)  # batch_size x num_steps x num_classes
+        else:
+            raise Exception('Prediction is neither CTC or Attn')
+
+    def forward(self, input, text, is_train=True):
+        """ Transformation stage """
+        if not self.stages['Trans'] == "None":
+            input = self.Transformation(input)
+
+        """ Feature extraction stage """
+        visual_feature = self.FeatureExtraction(input) # bx512x1x24
+        visual_feature = self.AdaptiveAvgPool(visual_feature.permute(0, 3, 1, 2))  # [b, c, h, w] -> [b, w, c, h]=bx24x512x1
+        visual_feature = visual_feature.squeeze(3) # [b, w, c]=bx24x512
+
+        """ Sequence modeling stage """
+        if self.stages['Seq'] == 'BiLSTM':
+            contextual_feature = self.SequenceModeling(visual_feature) # [b, w, hidden]=bx24x256
+        else:
+            contextual_feature = visual_feature  # for convenience. this is NOT contextually modeled by BiLSTM
+
+        """ Prediction stage """
+        if self.stages['Pred'] == 'CTC':
+            prediction = self.Prediction(contextual_feature.contiguous()) #[b, w, class]=bx24x63
+        else:
+            prediction = self.Prediction(contextual_feature.contiguous(), text, is_train, batch_max_length=self.opt.batch_max_length)
+
+        return prediction
+

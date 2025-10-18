@@ -16,7 +16,6 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 from torchmetrics import StructuralSimilarityIndexMeasure
-
 from dataset import test_adv_dataset
 from STR_modules.feature_extraction import VGG_FeatureExtractor, ResNet_FeatureExtractor,BasicBlock,ResNet
 from STR_modules.transformation import TPS_SpatialTransformerNetwork
