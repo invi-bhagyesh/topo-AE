@@ -524,7 +524,7 @@ if __name__ == "__main__":
     parser.add_argument("--alpha", type=float, default=None, help="Step size for attacks that use alpha (optional)")
     parser.add_argument("--batch-save-freq", type=int, default=10, help="How often to print progress")
     parser.add_argument("--full_pipeline_path", type=str, default="/kaggle/input/reformer_topo/pytorch/default/2/MNIST_full_pipeline.pth", help="Path to saved full pipeline state_dict (.pth)")
-    parser.add_argument("--smoothing", action="store_true", default=True, help="Enable inference-time randomized smoothing (default: True)")
+    parser.add_argument("--smoothing", action="store_true", default=False, help="Enable inference-time randomized smoothing (default: True)")
     parser.add_argument("--smoothing-sigma", type=float, default=0.15, help="Noise standard deviation for smoothing")
     parser.add_argument("--smoothing-samples", type=int, default=10, help="Number of noisy samples for smoothing")
     parser.add_argument("--n-triangles", type=int, default=600, help="Number of triangles (primitive resolution) to use in TriangleTransform")
