@@ -23,7 +23,7 @@ class FullTopoPipeline(nn.Module):
         
         topo_img = self.topo_model.decode(latent)
         
-        topo_img = topo_img.sigmoid()  # First clamp to [0, 1]
+        topo_img = torch.clamp(topo_img, 0, 1)  # First clamp to [0, 1]
         topo_img = (topo_img - 0.5) / 0.5  # Then normalize to [-1, 1]
 
         # latent_out = self.latent_nn(latent)
