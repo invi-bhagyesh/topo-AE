@@ -324,14 +324,22 @@ def train_reformer(opt, model, converter, lambda_ssim=0.1, alpha=1.0, beta=1.0, 
     print("Training completed.")
     return reformer
 
-opt.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = Model(opt).to(opt.device)
-converter = CTCLabelConverter(opt.character) or AttnLabelConverter(opt.character)
 
-reformer = train_reformer(opt,model,converter)
+if __name__ == "__main__":
+    opt.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # Model and converter setup
+    if 'CTC' in opt.Prediction:
+        converter = CTCLabelConverter(opt.character)
+    else:
+        converter = AttnLabelConverter(opt.character)
+    model = Model(opt).to(opt.device)
 
-time_st = time.time()
-test(opt)
-time_end = time.time()
-print(f'Testing time: {time_end - time_st:.2f} seconds')
+    # Train reformer
+    reformer = train_reformer(opt, model, converter)
+
+    # Test
+    time_st = time.time()
+    test(opt)
+    time_end = time.time()
+    print(f'Testing time: {time_end - time_st:.2f} seconds')
 
