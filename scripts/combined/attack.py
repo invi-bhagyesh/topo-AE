@@ -189,16 +189,17 @@ class ReparamWrapper(nn.Module):
             raise AttributeError('Pipeline does not expose a reparameterization/decoder required for reparam attacks')
 
     def forward(self, z):
-        # z is a latent tensor. Map to image via decode fn then run pipeline to get logits.
         x = self._decode_fn(z)
 
-        # prefer a differentiable surrogate when available
+        # Prefer differentiable surrogate if available
         if hasattr(self.pipeline, 'surrogate') and self.pipeline.surrogate is not None:
             return self.pipeline.surrogate(x)
 
-        # If pipeline returns logits with no grad, we still want a path from z to logits
-        # so call pipeline(x) without torch.no_grad so gradients flow through decode_fn.
-        out = self.pipeline(x)[1]
+        # Force gradient path z → x → logits
+        x.requires_grad_(True)
+        out = self.pipeline(x)
+        if isinstance(out, tuple):
+            out = out[1]
         return out
 
 
