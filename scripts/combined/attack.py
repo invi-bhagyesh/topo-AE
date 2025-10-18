@@ -23,55 +23,6 @@ class PipelineWrapper(nn.Module):
         return self.pipeline(x)[1]  # logits only
 
 
-# --- Inserted: TriangleTransform and PipelineWithTriangles ---
-
-class TriangleTransform(nn.Module):
-    """Approximate an image using a coarse primitive-like transform controlled by
-    `n_triangles`. This implementation uses adaptive downsampling then upsampling
-    to produce a coarse approximation (acts like a primitive-based smoothing).
-
-    This is a differentiable, lightweight approximation suitable for experiments
-    where a full triangle rasterizer is not available. It preserves the same
-    tensor shape and dtype as the input.
-    """
-    def __init__(self, n_triangles=600):
-        super().__init__()
-        self.n_triangles = int(n_triangles)
-
-    def forward(self, x):
-        # x: (B, C, H, W)
-        # Map n_triangles -> coarse side resolution s such that s*s ~= n_triangles
-        B, C, H, W = x.shape
-        # ensure at least 1
-        s = max(1, int(round((self.n_triangles)**0.5)))
-        # But do not exceed image dims
-        s_h = min(s, H)
-        s_w = min(s, W)
-        # Adaptive pooling to (s_h, s_w) then upsample back. This mimics a coarse
-        # piecewise-constant / primitive approximation. It's differentiable.
-        pooled = nn.functional.adaptive_avg_pool2d(x, (s_h, s_w))
-        up = nn.functional.interpolate(pooled, size=(H, W), mode='bilinear', align_corners=False)
-        return up
-
-
-class PipelineWithTriangles(nn.Module):
-    """Wrap an existing pipeline and apply TriangleTransform before calling it.
-
-    The wrapped pipeline is expected to follow the same contract used elsewhere
-    in the file: pipeline(x) returns a tuple-like object where index 1 is the
-    logits (and the pipeline accepts an image tensor as input).
-    """
-    def __init__(self, pipeline, n_triangles=600):
-        super().__init__()
-        self.pipeline = pipeline
-        self.triangle_transform = TriangleTransform(n_triangles=n_triangles)
-
-    def forward(self, x):
-        x_tri = self.triangle_transform(x)
-        # pipeline should return (reconstruction, logits) or similar; keep same contract
-        return self.pipeline(x_tri)
-
-
 class BPDAFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x, pipeline, fallback_mode="spatial"):
@@ -527,7 +478,6 @@ if __name__ == "__main__":
     parser.add_argument("--smoothing", action="store_true", default=False, help="Enable inference-time randomized smoothing (default: True)")
     parser.add_argument("--smoothing-sigma", type=float, default=0.15, help="Noise standard deviation for smoothing")
     parser.add_argument("--smoothing-samples", type=int, default=10, help="Number of noisy samples for smoothing")
-    parser.add_argument("--n-triangles", type=int, default=600, help="Number of triangles (primitive resolution) to use in TriangleTransform")
     args = parser.parse_args()
 
     device = torch.device(args.device)
@@ -592,10 +542,6 @@ if __name__ == "__main__":
     )
     full_pipeline.load_state_dict(torch.load(args.full_pipeline_path, map_location=device))
     full_pipeline.to(device)
-# Wrap the original pipeline with a triangle-based transform that approximates
-# the input using `n_triangles`. This makes the triangle transform part of the
-# forward pass used by BPDA/EOT wrappers.
-    full_pipeline = PipelineWithTriangles(full_pipeline, n_triangles=args.n_triangles)
     full_pipeline.eval()
 
     result = generate_adversarial_dataset(
