@@ -258,7 +258,7 @@ def generate_adversarial_dataset(
         model = PipelineWrapper(pipeline).to(device)
 
 # Optional: inference-time randomized smoothing
-    if attack_kwargs.get('smoothing', False):
+    if attack_kwargs.get('smoothing', True):
         sigma = attack_kwargs.get('smoothing_sigma', 0.25)
         samples = attack_kwargs.get('smoothing_samples', 10)
         model = RandomizedSmoothingWrapper(model, sigma=sigma, n_samples=samples, reparam_mode=reparam_mode).to(device)
@@ -475,6 +475,9 @@ if __name__ == "__main__":
     parser.add_argument("--alpha", type=float, default=None, help="Step size for attacks that use alpha (optional)")
     parser.add_argument("--batch-save-freq", type=int, default=10, help="How often to print progress")
     parser.add_argument("--full_pipeline_path", type=str, default="/kaggle/input/reformer_topo/pytorch/default/2/MNIST_full_pipeline.pth", help="Path to saved full pipeline state_dict (.pth)")
+    parser.add_argument("--smoothing", action="store_true", default=True, help="Enable inference-time randomized smoothing (default: True)")
+    parser.add_argument("--smoothing-sigma", type=float, default=0.15, help="Noise standard deviation for smoothing")
+    parser.add_argument("--smoothing-samples", type=int, default=10, help="Number of noisy samples for smoothing")
     args = parser.parse_args()
 
     device = torch.device(args.device)
@@ -554,7 +557,9 @@ if __name__ == "__main__":
         n_iter=args.n_iter,
         n_restarts=args.n_restarts,
         alpha=args.alpha,
-        smoothing=False
+        smoothing=args.smoothing,
+        smoothing_sigma=args.smoothing_sigma,
+        smoothing_samples=args.smoothing_samples,
     )
 
     print("Finished. Summary:")
