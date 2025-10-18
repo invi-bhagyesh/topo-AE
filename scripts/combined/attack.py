@@ -429,6 +429,35 @@ def generate_adversarial_dataset(
     all_adv = np.concatenate(all_adv, axis=0)
     all_labels = np.concatenate(all_labels, axis=0)
 
+    # Compute additional metrics
+    from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score, accuracy_score
+
+    y_true = all_labels
+    y_pred_clean = np.argmax(np.concatenate([
+        model(torch.tensor(x, device=device)).detach().cpu().numpy()
+        for x in torch.utils.data.DataLoader(torch.tensor(all_clean), batch_size=64)
+    ]), axis=1)
+    y_pred_adv = np.argmax(np.concatenate([
+        model(torch.tensor(x, device=device)).detach().cpu().numpy()
+        for x in torch.utils.data.DataLoader(torch.tensor(all_adv), batch_size=64)
+    ]), axis=1)
+
+    metrics = {
+        'precision_clean': precision_score(y_true, y_pred_clean, average='macro'),
+        'recall_clean': recall_score(y_true, y_pred_clean, average='macro'),
+        'f1_clean': f1_score(y_true, y_pred_clean, average='macro'),
+        'accuracy_clean': accuracy_score(y_true, y_pred_clean),
+        'auc_clean': roc_auc_score(y_true, np.eye(len(np.unique(y_true)))[y_pred_clean], multi_class='ovr'),
+        'precision_adv': precision_score(y_true, y_pred_adv, average='macro'),
+        'recall_adv': recall_score(y_true, y_pred_adv, average='macro'),
+        'f1_adv': f1_score(y_true, y_pred_adv, average='macro'),
+        'accuracy_adv': accuracy_score(y_true, y_pred_adv),
+        'auc_adv': roc_auc_score(y_true, np.eye(len(np.unique(y_true)))[y_pred_adv], multi_class='ovr'),
+    }
+
+    for k, v in metrics.items():
+        print(f"{k}: {v:.4f}")
+
     clean_accuracy = 100.0 * correct_clean / total
     adv_accuracy = 100.0 * correct_adv / total
     attack_success_rate = 100.0 - adv_accuracy
@@ -446,7 +475,8 @@ def generate_adversarial_dataset(
         attack_type=attack_type,
         clean_accuracy=clean_accuracy,
         adversarial_accuracy=adv_accuracy,
-        attack_success_rate=attack_success_rate
+        attack_success_rate=attack_success_rate,
+        **metrics
     )
 
     return {
