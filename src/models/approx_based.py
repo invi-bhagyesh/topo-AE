@@ -7,6 +7,18 @@ from src.topology import PersistentHomologyCalculation #AlephPersistenHomologyCa
 from src.models import submodules
 from src.models.base import AutoencoderModel
 
+class TopoBPDA(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, topo_error, latent_distances):
+        ctx.save_for_backward(latent_distances)
+        return topo_error  # forward: use real topo loss
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        latent_distances, = ctx.saved_tensors
+        # surrogate gradient: simple differentiable proxy
+        grad_latent = 2 * (latent_distances - latent_distances.mean())
+        return grad_output * grad_latent, None
 
 class TopologicallyRegularizedAutoencoder(AutoencoderModel):
     """Topologically regularized autoencoder."""
@@ -76,6 +88,11 @@ class TopologicallyRegularizedAutoencoder(AutoencoderModel):
         # normalize topo_error according to batch_size
         batch_size = dimensions[0]
         topo_error = topo_error / float(batch_size) 
+
+        # apply BPDA surrogate for backward
+        topo_error = TopoBPDA.apply(topo_error, latent_distances)
+
+
         loss = ae_loss + self.lam * topo_error
         loss_components = {
             'loss.autoencoder': ae_loss,
