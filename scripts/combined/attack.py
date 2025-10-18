@@ -201,6 +201,34 @@ class ReparamWrapper(nn.Module):
         out = self.pipeline(x)[1]
         return out
 
+
+# --- Inserted: RandomizedSmoothingWrapper ---
+class RandomizedSmoothingWrapper(nn.Module):
+    """Inference-time randomized smoothing wrapper.
+
+    Averages logits over `n_samples` noisy copies of the input.
+    Works for both image-space and latent-space models because it simply
+    adds Gaussian noise to the tensor argument passed to `forward`.
+    """
+    def __init__(self, model, sigma=0.25, n_samples=10, reparam_mode=False):
+        super().__init__()
+        self.model = model
+        self.sigma = float(sigma)
+        self.n_samples = int(n_samples)
+        self.reparam_mode = bool(reparam_mode)
+
+    def forward(self, inp):
+        logits = None
+        for _ in range(self.n_samples):
+            noise = torch.randn_like(inp) * self.sigma
+            pert = inp + noise
+            out = self.model(pert)
+            if logits is None:
+                logits = out
+            else:
+                logits = logits + out
+        return logits / float(self.n_samples)
+
 def generate_adversarial_dataset(
     pipeline,
     dataloader,
@@ -228,6 +256,13 @@ def generate_adversarial_dataset(
         model = ReparamWrapper(pipeline).to(device)
     else:
         model = PipelineWrapper(pipeline).to(device)
+
+# Optional: inference-time randomized smoothing
+    if attack_kwargs.get('smoothing', False):
+        sigma = attack_kwargs.get('smoothing_sigma', 0.25)
+        samples = attack_kwargs.get('smoothing_samples', 10)
+        model = RandomizedSmoothingWrapper(model, sigma=sigma, n_samples=samples, reparam_mode=reparam_mode).to(device)
+        print(f"Enabled inference-time randomized smoothing: sigma={sigma}, samples={samples}")
 
     # For EOT or reparameterization you need stochastic behavior enabled in the pipeline.
     if 'eot' in atk_lower or reparam_mode:
@@ -518,7 +553,8 @@ if __name__ == "__main__":
         version=args.version,
         n_iter=args.n_iter,
         n_restarts=args.n_restarts,
-        alpha=args.alpha
+        alpha=args.alpha,
+        smoothing=True
     )
 
     print("Finished. Summary:")
