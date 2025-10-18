@@ -285,6 +285,10 @@ def generate_adversarial_dataset(
         base_attack = parts[-1] if len(parts) > 0 else 'pgd'
     base_attack = base_attack.lower()
 
+    # Disable histogram matching during attack generation so gradients flow
+    pipeline_prev_use = getattr(pipeline, "use_hist_match", None)
+    pipeline.use_hist_match = False
+
     if base_attack == 'pgd':
         print(f"Using PGD attack (base for '{attack_type}').")
         attacker = torchattacks.PGD(model, eps=eps, alpha=attack_kwargs.get('alpha', 2/255), steps=attack_kwargs.get('steps', 40))
@@ -414,9 +418,20 @@ def generate_adversarial_dataset(
         else:
             x_adv = attacker(clean_img, label)
 
-            # Adversarial accuracy
+            # Adversarial accuracy: evaluate with histogram matching enabled on pipeline
             with torch.no_grad():
-                logits_adv = model(x_adv)
+                # temporarily enable histogram matching on pipeline for evaluation
+                try:
+                    pipeline.use_hist_match = True
+                    pipeline.eval()
+                    logits_adv = pipeline(x_adv)[1]
+                finally:
+                    if pipeline_prev_use is None:
+                        if hasattr(pipeline, "use_hist_match"):
+                            delattr(pipeline, "use_hist_match")
+                    else:
+                        pipeline.use_hist_match = pipeline_prev_use
+
                 pred_adv = torch.argmax(logits_adv, dim=1)
                 correct_adv += (pred_adv == label).sum().item()
 
