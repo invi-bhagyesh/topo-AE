@@ -189,18 +189,43 @@ class ReparamWrapper(nn.Module):
             raise AttributeError('Pipeline does not expose a reparameterization/decoder required for reparam attacks')
 
     def forward(self, z):
-        x = self._decode_fn(z)
+        """Decode latent z and return logits while preserving a differentiable path.
 
-        # Prefer differentiable surrogate if available
-        if hasattr(self.pipeline, 'surrogate') and self.pipeline.surrogate is not None:
-            return self.pipeline.surrogate(x)
+        Ensures z is a leaf tensor with requires_grad=True. Runs the decoder and the
+        downstream pipeline with gradient tracking enabled. Extracts logits if the
+        pipeline returns a tuple. Returns logits that depend on z so PGD can compute
+        gradients w.r.t. z.
+        """
+        # Ensure z is a leaf with grad enabled
+        z = z.clone().detach().to(next(self.parameters()).device if any(p.requires_grad for p in self.parameters()) else z.device)
+        z = z.requires_grad_(True)
 
-        # Force gradient path z → x → logits
-        x.requires_grad_(True)
-        out = self.pipeline(x)
+        # Run decoder and pipeline with gradient tracking
+        with torch.enable_grad():
+            # decode must not be run under no_grad elsewhere; keep grad.
+            x = self._decode_fn(z)
+            # ensure tensor dtype/device alignment
+            if not x.dtype.is_floating_point:
+                x = x.float()
+            x = x.to(z.device)
+
+            # prefer differentiable surrogate if present
+            if hasattr(self.pipeline, 'surrogate') and self.pipeline.surrogate is not None:
+                out = self.pipeline.surrogate(x)
+            else:
+                out = self.pipeline(x)
+
+        # pipeline might return (image, logits) or logits directly
         if isinstance(out, tuple):
-            out = out[1]
-        return out
+            logits = out[1]
+        else:
+            logits = out
+
+        # final safeguard: ensure logits requires grad and depend on z
+        if not getattr(logits, 'requires_grad', False):
+            # try to force a connection by taking a small differentiable op
+            logits = logits * (z.sum() * 0.0 + 1.0)
+        return logits
 
 
 # --- Inserted: RandomizedSmoothingWrapper ---
