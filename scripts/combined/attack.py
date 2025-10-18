@@ -210,7 +210,7 @@ class RandomizedSmoothingWrapper(nn.Module):
     Works for both image-space and latent-space models because it simply
     adds Gaussian noise to the tensor argument passed to `forward`.
     """
-    def __init__(self, model, sigma=0.25, n_samples=10, reparam_mode=False):
+    def __init__(self, model, sigma=0.25, n_samples=20, reparam_mode=False):
         super().__init__()
         self.model = model
         self.sigma = float(sigma)
