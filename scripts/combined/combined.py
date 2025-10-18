@@ -7,36 +7,45 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")
 sys.path.insert(0, parent_dir)
 from .reformer import LatentReformer, LatentNet, MNIST_CNN
 from src.models.approx_based import TopologicallyRegularizedAutoencoder
-
+from skimage.exposure import match_histograms
 
 class FullTopoPipeline(nn.Module):
-    def __init__(self, topo_model, classifier, device='cpu'):
+    def __init__(self, topo_model, classifier, device='cpu', reference_image=None, use_hist_match=True):
         super().__init__()
         self.topo_model = topo_model
-        # self.latent_reformer = latent_reformer
-        # self.latent_nn = latent_nn
         self.classifier = classifier
         self.device = device
+        self.reference_image = reference_image  # torch tensor in [-1,1]
+        self.use_hist_match = use_hist_match
 
     def forward(self, x):
         latent = self.topo_model.encode(x)
-        
         topo_img = self.topo_model.decode(latent)
-        
-        topo_img = torch.clamp(topo_img, 0, 1)  # First clamp to [0, 1]
-        topo_img = (topo_img - 0.5) / 0.5  # Then normalize to [-1, 1]
+
+        # Scale topo output to [0,1] for histogram matching if needed
+        topo_img_rescaled = torch.clamp(topo_img, 0, 1)
+
+        if self.use_hist_match and self.reference_image is not None:
+            # Scale reference image to [0,1]
+            ref_img_rescaled = (self.reference_image + 1) / 2  # [-1,1] -> [0,1]
+
+            # Histogram match each image individually
+            matched_imgs = []
+            for img in topo_img_rescaled:
+                img_np = img.cpu().numpy().squeeze()
+                matched_np = match_histograms(img_np, ref_img_rescaled.cpu().numpy(), multichannel=False)
+                matched_tensor = torch.tensor(matched_np, device=img.device).unsqueeze(0)
+                matched_imgs.append(matched_tensor)
+            topo_img_rescaled = torch.stack(matched_imgs)
+
+        # Normalize to [-1,1] for classifier
+        topo_img_normalized = (topo_img_rescaled * 2) - 1
 
         # latent_out = self.latent_nn(latent)
-        # print("latent OUT min:", latent_out.min().item(), "max:", latent_out.max().item())
-
-        # Step 3: latent reformer reconstruction
         # recon_img, mu, logvar = self.latent_reformer(topo_img, latent_out)
 
-        # Step 4: classification
-        logits = self.classifier(topo_img)
-        return topo_img, logits
-
-
+        logits = self.classifier(topo_img_normalized)
+        return topo_img_normalized, logits
 
 import matplotlib.pyplot as plt
 
@@ -146,7 +155,10 @@ if __name__ == "__main__":
     ])
     test_dataset = datasets.MNIST(root="./data", train=False, download=True, transform=transform)
     test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
-
+    # Use mean image as reference
+    reference_image = train_dataset.data.float().mean(dim=0) / 255.0  # [0,1]
+    reference_image = reference_image * 2 - 1  # normalize to [-1,1]
+    
     clean_correct, topo_correct, recon_correct = 0, 0, 0
     total = 0
 

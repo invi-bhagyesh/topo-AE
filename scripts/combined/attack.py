@@ -494,14 +494,15 @@ if __name__ == "__main__":
     else:
         raise ValueError(f"Unsupported dataset: {args.dataset}")
 
+    # Use mean image as reference
+    reference_image = dataset.data.float().mean(dim=0) / 255.0  # [0,1]
+    reference_image = reference_image * 2 - 1  # normalize to [-1,1]
+
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
-     # Combine models
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dataset_name = args.dataset
 
-
-    # model_path = f'./models/{dataset_name}_topo_model.pth'
 
     if dataset_name == 'MNIST':
         topo_model = TopologicallyRegularizedAutoencoder(
@@ -538,7 +539,9 @@ if __name__ == "__main__":
         # latent_reformer=latent_reformer,
         # latent_nn=latent_nn,
         classifier=classifier,
-        device=device
+        device=device,
+        reference_image=reference_image,
+        use_hist_match=True  # optional flag
     )
     full_pipeline.load_state_dict(torch.load(args.full_pipeline_path, map_location=device))
     full_pipeline.to(device)
