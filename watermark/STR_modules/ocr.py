@@ -1,6 +1,7 @@
 import random
 import sys
 sys.path.append('/Users/invi/Desktop/TopoReformer/TopoReformer/watermark')
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import time
 import string
 import shutil
