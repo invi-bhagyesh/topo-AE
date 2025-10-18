@@ -458,24 +458,15 @@ def generate_adversarial_dataset(
     # Compute additional metrics
     from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score, accuracy_score
 
-    eval_model = pipeline if reparam_mode else model
-    eval_model.eval()
-
-    def predict_batches(data):
-        preds = []
-        with torch.no_grad():
-            for x in torch.utils.data.DataLoader(torch.tensor(data), batch_size=64):
-                x = x.to(device)
-                if reparam_mode:
-                    logits = eval_model(x)
-                else:
-                    logits = eval_model(x)[1] if isinstance(eval_model(x), tuple) else eval_model(x)
-                preds.append(logits.detach().cpu().numpy())
-        return np.argmax(np.concatenate(preds, axis=0), axis=1)
-
     y_true = all_labels
-    y_pred_clean = predict_batches(all_clean)
-    y_pred_adv = predict_batches(all_adv)
+    y_pred_clean = np.argmax(np.concatenate([
+        model(torch.tensor(x, device=device)).detach().cpu().numpy()
+        for x in torch.utils.data.DataLoader(torch.tensor(all_clean), batch_size=64)
+    ]), axis=1)
+    y_pred_adv = np.argmax(np.concatenate([
+        model(torch.tensor(x, device=device)).detach().cpu().numpy()
+        for x in torch.utils.data.DataLoader(torch.tensor(all_adv), batch_size=64)
+    ]), axis=1)
 
     metrics = {
         'precision_clean': precision_score(y_true, y_pred_clean, average='macro'),
