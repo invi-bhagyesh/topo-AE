@@ -8,6 +8,8 @@ sys.path.insert(0, parent_dir)
 from .reformer import LatentReformer, LatentNet, MNIST_CNN
 from src.models.approx_based import TopologicallyRegularizedAutoencoder
 from skimage.exposure import match_histograms
+import numpy as np
+
 
 class FullTopoPipeline(nn.Module):
     def __init__(self, topo_model, classifier, device='cpu', reference_image=None, use_hist_match=True):
@@ -28,13 +30,14 @@ class FullTopoPipeline(nn.Module):
         if self.use_hist_match and self.reference_image is not None:
             # Scale reference image to [0,1]
             ref_img_rescaled = (self.reference_image + 1) / 2  # [-1,1] -> [0,1]
+            ref_np = ref_img_rescaled.cpu().numpy()
 
-            # Histogram match each image individually
+            # Histogram match each image individually (detach to avoid grads)
             matched_imgs = []
             for img in topo_img_rescaled:
-                img_np = img.cpu().numpy().squeeze()
-                matched_np = match_histograms(img_np, ref_img_rescaled.cpu().numpy(), channel_axis=None)
-                matched_tensor = torch.tensor(matched_np, device=img.device).unsqueeze(0)
+                img_np = img.detach().cpu().numpy().squeeze()           # DETACH here
+                matched_np = match_histograms(img_np, ref_np, channel_axis=None)  # use channel_axis
+                matched_tensor = torch.from_numpy(matched_np.astype(np.float32)).to(img.device).unsqueeze(0)
                 matched_imgs.append(matched_tensor)
             topo_img_rescaled = torch.stack(matched_imgs)
 
