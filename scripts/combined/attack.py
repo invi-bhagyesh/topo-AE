@@ -554,7 +554,7 @@ if __name__ == "__main__":
         n_iter=args.n_iter,
         n_restarts=args.n_restarts,
         alpha=args.alpha,
-        smoothing=True
+        smoothing=False
     )
 
     print("Finished. Summary:")
