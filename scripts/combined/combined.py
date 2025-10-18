@@ -33,7 +33,7 @@ class FullTopoPipeline(nn.Module):
             matched_imgs = []
             for img in topo_img_rescaled:
                 img_np = img.cpu().numpy().squeeze()
-                matched_np = match_histograms(img_np, ref_img_rescaled.cpu().numpy(), multichannel=False)
+                matched_np = match_histograms(img_np, ref_img_rescaled.cpu().numpy(), channel_axis=None)
                 matched_tensor = torch.tensor(matched_np, device=img.device).unsqueeze(0)
                 matched_imgs.append(matched_tensor)
             topo_img_rescaled = torch.stack(matched_imgs)
