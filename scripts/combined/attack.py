@@ -20,7 +20,16 @@ class PipelineWrapper(nn.Module):
         self.pipeline = pipeline
 
     def forward(self, x):
-        return self.pipeline(x)[1]  # logits only
+        # pipeline may return (image, logits) or logits directly
+        out = self.pipeline(x)
+        if isinstance(out, tuple):
+            logits = out[1]
+        else:
+            logits = out
+        # Ensure logits are 2D: (batch_size, num_classes)
+        if logits.ndim == 1:
+            logits = logits.unsqueeze(0)
+        return logits
 
 
 class BPDAFunction(torch.autograd.Function):
@@ -105,20 +114,6 @@ class EOTWrapper(nn.Module):
         # Ensure that the returned logits are differentiable w.r.t. the input.
         logits = None
         for _ in range(self.n_samples):
-
-            # out = self.pipeline(x)[1]
-            # # If the pipeline returned logits that are detached (no grad),
-            # # prefer a provided differentiable surrogate. If none exists,
-            # # fall back to BPDAFunction.apply so backward uses the straight-through surrogate.
-            # if not getattr(out, 'requires_grad', False):
-            #     if hasattr(self.pipeline, 'surrogate') and self.pipeline.surrogate is not None:
-            #         out = self.pipeline.surrogate(x)
-            #     else:
-            #         # BPDAFunction.apply will call the real pipeline in forward (no grad)
-            #         # and provide surrogate/backprop behaviour in backward.
-            #         out = BPDAFunction.apply(x, self.pipeline)
-
-################# Remove for ckt
             out = self.pipeline(x)[1]
             if not out.requires_grad:
                 if hasattr(self.pipeline, 'surrogate') and self.pipeline.surrogate is not None:
@@ -127,13 +122,16 @@ class EOTWrapper(nn.Module):
                     # Force differentiability by cloning input and setting requires_grad=True
                     x_ = x.clone().detach().requires_grad_(True)
                     out = self.pipeline(x_)[1]  
-##################
-
             if logits is None:
                 logits = out
             else:
                 logits = logits + out
-        return logits / float(self.n_samples)
+        logits = logits / float(self.n_samples)
+        if isinstance(logits, tuple):
+            logits = logits[1]
+        if logits.ndim == 1:
+            logits = logits.unsqueeze(0)
+        return logits
 
 
 
@@ -152,7 +150,12 @@ class BPDA_EOT_Wrapper(nn.Module):
                 logits = out
             else:
                 logits = logits + out
-        return logits / float(self.n_samples)
+        logits = logits / float(self.n_samples)
+        if isinstance(logits, tuple):
+            logits = logits[1]
+        if logits.ndim == 1:
+            logits = logits.unsqueeze(0)
+        return logits
 
 
 # --- Inserted: ReparamWrapper ---
@@ -221,6 +224,10 @@ class ReparamWrapper(nn.Module):
         else:
             logits = out
 
+        # Ensure logits are 2D: (batch_size, num_classes)
+        if logits.ndim == 1:
+            logits = logits.unsqueeze(0)
+
         # final safeguard: ensure logits requires grad and depend on z
         if not getattr(logits, 'requires_grad', False):
             # try to force a connection by taking a small differentiable op
@@ -253,7 +260,14 @@ class RandomizedSmoothingWrapper(nn.Module):
                 logits = out
             else:
                 logits = logits + out
-        return logits / float(self.n_samples)
+        logits = logits / float(self.n_samples)
+        # If model returned (image, logits) in a pass, handle that
+        if isinstance(logits, tuple):
+            logits = logits[1]
+        # Ensure 2D logits
+        if logits.ndim == 1:
+            logits = logits.unsqueeze(0)
+        return logits
 
 def generate_adversarial_dataset(
     pipeline,
@@ -381,7 +395,7 @@ def generate_adversarial_dataset(
                 logits_clean = model(z_clean)
             else:
                 logits_clean = model(clean_img)
-            # Safe argmax for clean logits
+            # Safe argmax handling for clean logits
             if logits_clean.ndim == 1:
                 pred_clean = torch.tensor([int(logits_clean.argmax())], device=logits_clean.device)
             else:
@@ -438,7 +452,7 @@ def generate_adversarial_dataset(
                     logits_adv = pipeline.surrogate(x_adv)
                 else:
                     logits_adv = pipeline(x_adv)[1]
-                # Safe argmax for adversarial logits
+                # Safe argmax handling for adversarial logits
                 if logits_adv.ndim == 1:
                     pred_adv = torch.tensor([int(logits_adv.argmax())], device=logits_adv.device)
                 else:
@@ -451,13 +465,13 @@ def generate_adversarial_dataset(
             # Adversarial accuracy
             with torch.no_grad():
                 logits_adv = model(x_adv)
-                # Safe argmax for adversarial logits
+                # Safe argmax handling for adversarial logits
                 if logits_adv.ndim == 1:
                     pred_adv = torch.tensor([int(logits_adv.argmax())], device=logits_adv.device)
                 else:
                     pred_adv = torch.argmax(logits_adv, dim=1)
                 correct_adv += (pred_adv == label).sum().item()
-
+ 
         total += clean_img.size(0)
         all_clean.append(clean_img.cpu().numpy())
         all_adv.append(x_adv.detach().cpu().numpy())
