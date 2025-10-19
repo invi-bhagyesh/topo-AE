@@ -128,7 +128,6 @@ from feature_extraction import VGG_FeatureExtractor, ResNet_FeatureExtractor, Ba
 from transformation import TPS_SpatialTransformerNetwork
 from sequence_modeling import BidirectionalLSTM
 from prediction import CTCLabelConverter, AttnLabelConverter
-from utils import Logger
 from model import Model
 
 
@@ -158,7 +157,17 @@ def process_line(line):
     adv_preds = adv_preds.strip('\n')
     return adv_preds, label, adv_img_path
 
+class Logger(object):
+    def __init__(self, filename = "train.log"):
+        self.terminal =sys.stdout
+        self.log = open(filename,"w")
 
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+        
+    def flush(self):
+        pass
 # ============================================================================
 # DATASET CLASSES
 # ============================================================================
