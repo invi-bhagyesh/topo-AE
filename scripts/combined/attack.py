@@ -322,7 +322,7 @@ def generate_adversarial_dataset(
         attacker = torchattacks.APGD(model, eps=eps, steps=attack_kwargs.get('steps', 40))
     elif base_attack == 'cw':
         print(f"Using CW attack (base for '{attack_type}').")
-        attacker = torchattacks.CW(model, c=attack_kwargs.get('c', 1e-4), steps=attack_kwargs.get('steps', 10))
+        attacker = torchattacks.CW(model, c=attack_kwargs.get('c', 1), steps=attack_kwargs.get('steps', 10))
     elif base_attack == 'spsa':
         print(f"Using SPSA attack (base for '{attack_type}').")
         try:
