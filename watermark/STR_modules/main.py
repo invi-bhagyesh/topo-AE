@@ -121,12 +121,12 @@ import matplotlib.pyplot as plt
 from torchmetrics import StructuralSimilarityIndexMeasure
 
 # Assuming these modules are available in your environment
-from STR_modules.feature_extraction import VGG_FeatureExtractor, ResNet_FeatureExtractor, BasicBlock, ResNet
-from STR_modules.transformation import TPS_SpatialTransformerNetwork
-from STR_modules.sequence_modeling import BidirectionalLSTM
-from STR_modules.prediction import CTCLabelConverter, AttnLabelConverter
+from feature_extraction import VGG_FeatureExtractor, ResNet_FeatureExtractor, BasicBlock, ResNet
+from transformation import TPS_SpatialTransformerNetwork
+from sequence_modeling import BidirectionalLSTM
+from prediction import CTCLabelConverter, AttnLabelConverter
 from utils import Logger
-from STR_modules.model import Model
+from model import Model
 
 
 # ============================================================================
