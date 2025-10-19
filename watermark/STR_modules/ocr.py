@@ -71,6 +71,17 @@ def test(opt):
     model.load_state_dict(torch.load(opt.str_model, map_location=opt.device), strict=False)
     model.eval()
 
+    reformer = None
+    if opt.use_reformer:
+        reformer = LatentReformer(in_channels=3).to(opt.device)
+        reformer_path = './reformer.pth'
+        if os.path.exists(reformer_path):
+            reformer.load_state_dict(torch.load(reformer_path, map_location=opt.device))
+            reformer.eval()
+        else:
+            print(f"Reformer model not found at {reformer_path}. Proceeding without reformer.")
+            reformer = None
+
     # Prepare output directories
     makedirs(opt.output)
     str_name = opt.str_model.split('/')[-1].split('-')[0]
@@ -98,7 +109,10 @@ def test(opt):
         adv_img = adv_img.to(opt.device)
         
 
-        reconstructed_img = reformer(adv_img)
+        if opt.use_reformer and reformer is not None:
+            reconstructed_img = reformer(adv_img)
+        else:
+            reconstructed_img = adv_img
         
         label = data[2]
         adv_index = data[3][0]
@@ -205,6 +219,7 @@ class Opt:
         self.output_channel = 512
         self.hidden_size = 256
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.use_reformer = True
 
 opt = Opt()
 print(opt.__dict__)     
@@ -345,4 +360,3 @@ if __name__ == "__main__":
     test(opt)
     time_end = time.time()
     print(f'Testing time: {time_end - time_st:.2f} seconds')
-
