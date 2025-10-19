@@ -590,7 +590,7 @@ if __name__ == "__main__":
     classifier = MNIST_CNN()
 
     full_pipeline = FullTopoPipeline(
-        topo_model=topo_model,
+        # topo_model=topo_model,
         # latent_reformer=latent_reformer,
         # latent_nn=latent_nn,
         classifier=classifier,
