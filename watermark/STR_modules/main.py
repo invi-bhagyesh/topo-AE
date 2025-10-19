@@ -119,13 +119,16 @@ import torch.nn.functional as F
 import torch.optim as optim
 import matplotlib.pyplot as plt
 from torchmetrics import StructuralSimilarityIndexMeasure
-
-# Assuming these modules are available in your environment
+import sys
+import os
+current_dir = os.getcwd()  # current notebook or script folder
+parent_dir = os.path.abspath(os.path.join(current_dir, ".."))
+sys.path.append(parent_dir)
 from feature_extraction import VGG_FeatureExtractor, ResNet_FeatureExtractor, BasicBlock, ResNet
 from transformation import TPS_SpatialTransformerNetwork
 from sequence_modeling import BidirectionalLSTM
 from prediction import CTCLabelConverter, AttnLabelConverter
-from utils import Logger
+from ..utils import Logger
 from model import Model
 
 
