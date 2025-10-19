@@ -485,14 +485,29 @@ def generate_adversarial_dataset(
     from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score, accuracy_score
 
     y_true = all_labels
-    y_pred_clean = np.argmax(np.concatenate([
-        model(torch.tensor(x, device=device)).detach().cpu().numpy()
-        for x in torch.utils.data.DataLoader(torch.tensor(all_clean), batch_size=64)
-    ]), axis=1)
-    y_pred_adv = np.argmax(np.concatenate([
-        model(torch.tensor(x, device=device)).detach().cpu().numpy()
-        for x in torch.utils.data.DataLoader(torch.tensor(all_adv), batch_size=64)
-    ]), axis=1)
+
+    # Convert arrays to tensors on device
+    all_clean_tensor = torch.tensor(all_clean, device=device)
+    all_adv_tensor = torch.tensor(all_adv, device=device)
+
+    # Batched prediction function
+    def batch_predict(model, tensor_data, batch_size=64):
+        preds = []
+        model.eval()
+        with torch.no_grad():
+            for i in range(0, len(tensor_data), batch_size):
+                batch = tensor_data[i:i+batch_size]
+                logits = model(batch)
+                if isinstance(logits, tuple):
+                    logits = logits[1]
+                if logits.ndim == 1:
+                    logits = logits.unsqueeze(0)
+                batch_pred = torch.argmax(logits, dim=1)
+                preds.append(batch_pred.cpu().numpy())
+        return np.concatenate(preds, axis=0)
+
+    y_pred_clean = batch_predict(model, all_clean_tensor, batch_size=64)
+    y_pred_adv   = batch_predict(model, all_adv_tensor, batch_size=64)
 
     metrics = {
         'precision_clean': precision_score(y_true, y_pred_clean, average='macro'),
