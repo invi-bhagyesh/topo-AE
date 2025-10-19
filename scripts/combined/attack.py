@@ -564,6 +564,8 @@ if __name__ == "__main__":
     parser.add_argument("--smoothing", action="store_true", default=False, help="Enable inference-time randomized smoothing (default: True)")
     parser.add_argument("--smoothing-sigma", type=float, default=0.15, help="Noise standard deviation for smoothing")
     parser.add_argument("--smoothing-samples", type=int, default=10, help="Number of noisy samples for smoothing")
+    parser.add_argument("--c", type=float, default=10, help="CW attack hyperparameter c (default: 10)")
+    parser.add_argument("--steps", type=int, default=1000, help="Number of steps for CW attack (default: 1000)")
     args = parser.parse_args()
 
     device = torch.device(args.device)
@@ -646,6 +648,8 @@ if __name__ == "__main__":
         smoothing=args.smoothing,
         smoothing_sigma=args.smoothing_sigma,
         smoothing_samples=args.smoothing_samples,
+        c=args.c,
+        steps=args.steps  # add this line
     )
 
     print("Finished. Summary:")
