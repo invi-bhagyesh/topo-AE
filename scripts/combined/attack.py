@@ -333,8 +333,8 @@ def generate_adversarial_dataset(
 
     # Helper to create torchattacks EOT PGD
     def make_eot_pgd(model, eps, alpha, steps, eot_samples=10):
-        # EOTWrapper is already applied to model if requested above
-        return torchattacks.PGD(model, eps=eps, alpha=alpha, steps=steps)
+        # Use torchattacks.EOTPGD instead of EOTWrapper+PGD
+        return torchattacks.EOTPGD(model, eps=eps, alpha=alpha, steps=steps, eot_samples=eot_samples)
 
     # Helper to create torchattacks Reparam PGD
     def make_reparam_pgd(model, eps, alpha, steps):
@@ -360,9 +360,15 @@ def generate_adversarial_dataset(
             print("advertorch not available, falling back to torchattacks PGD for BPDA+PGD.")
             attacker = make_torchattacks_pgd(model, eps, attack_kwargs.get('alpha', 2/255), attack_kwargs.get('steps', 40))
     elif ('eot' in atk_lower) and ('reparam' not in atk_lower):
-        # EOT + PGD (torchattacks)
-        print(f"Using EOT + PGD attack (torchattacks) for '{attack_type}'.")
-        attacker = make_eot_pgd(model, eps, attack_kwargs.get('alpha', 2/255), attack_kwargs.get('steps', 40), eot_samples=attack_kwargs.get('eot_samples', 10))
+        # EOT + PGD (torchattacks.EOTPGD)
+        print(f"Using EOT + PGD attack (torchattacks.EOTPGD) for '{attack_type}'.")
+        attacker = torchattacks.EOTPGD(
+            model,
+            eps=eps,
+            alpha=attack_kwargs.get('alpha', 2/255),
+            steps=attack_kwargs.get('steps', 40),
+            eot_samples=attack_kwargs.get('eot_samples', 10)
+        )
     elif 'reparam' in atk_lower:
         # Reparameterization + PGD (torchattacks)
         print(f"Using Reparameterization + PGD attack (torchattacks) for '{attack_type}'.")
