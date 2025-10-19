@@ -563,6 +563,8 @@ if __name__ == "__main__":
         dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
     elif args.dataset == "EMNIST":
         dataset = datasets.EMNIST(root='./data', split='letters', train=False, download=True, transform=transform)
+        dataset.targets -= 1
+
     else:
         raise ValueError(f"Unsupported dataset: {args.dataset}")
 
