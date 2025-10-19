@@ -267,21 +267,35 @@ def generate_adversarial_dataset(
     # choose wrapper for BPDA/EOT/Reparameterization if requested in attack_type or attack_kwargs
     atk_lower = attack_type.lower()
     reparam_mode = False
-    if 'bpda_eot' in atk_lower or ('bpda' in atk_lower and 'eot' in atk_lower):
+    wrappers = []
+
+    # accept both common spellings 'bpda' and 'bdpa' for compatibility
+    has_bpda = ('bpda' in atk_lower) or ('bdpa' in atk_lower)
+
+    # Handle combined tokens first
+    if 'bpda_eot' in atk_lower or (has_bpda and 'eot' in atk_lower):
         print("Using BPDA + EOT wrapper for the pipeline.")
         model = BPDA_EOT_Wrapper(pipeline, n_samples=attack_kwargs.get('eot_samples', 10)).to(device)
-    elif 'bpda' in atk_lower and 'reparam' not in atk_lower:
+        wrappers = ['BPDA', 'EOT']
+    elif has_bpda and 'reparam' not in atk_lower:
         print("Using BPDA wrapper for the pipeline.")
         model = BPDAWrapper(pipeline).to(device)
+        wrappers = ['BPDA']
     elif 'eot' in atk_lower and 'reparam' not in atk_lower:
         print("Using EOT wrapper for the pipeline.")
         model = EOTWrapper(pipeline, n_samples=attack_kwargs.get('eot_samples', 10)).to(device)
+        wrappers = ['EOT']
     elif 'reparam' in atk_lower:
         print("Using Reparameterization wrapper for the pipeline. Attacks will be performed in latent space.")
         reparam_mode = True
         model = ReparamWrapper(pipeline).to(device)
+        wrappers = ['REPARAM']
     else:
         model = PipelineWrapper(pipeline).to(device)
+        wrappers = []
+
+    # Confirm selection for user debugging
+    print(f"Confirmed attack_type='{attack_type}', wrapper(s): {', '.join(wrappers) if wrappers else 'None'}.")
 
 # Optional: inference-time randomized smoothing
     if attack_kwargs.get('smoothing', True):
