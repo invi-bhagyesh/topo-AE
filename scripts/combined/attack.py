@@ -381,7 +381,7 @@ def generate_adversarial_dataset(
                 logits_clean = model(z_clean)
             else:
                 logits_clean = model(clean_img)
-            # Safe argmax handling for clean logits
+            # Safe argmax for clean logits
             if logits_clean.ndim == 1:
                 pred_clean = torch.tensor([int(logits_clean.argmax())], device=logits_clean.device)
             else:
@@ -438,7 +438,7 @@ def generate_adversarial_dataset(
                     logits_adv = pipeline.surrogate(x_adv)
                 else:
                     logits_adv = pipeline(x_adv)[1]
-                # Safe argmax handling for adversarial logits
+                # Safe argmax for adversarial logits
                 if logits_adv.ndim == 1:
                     pred_adv = torch.tensor([int(logits_adv.argmax())], device=logits_adv.device)
                 else:
@@ -451,7 +451,7 @@ def generate_adversarial_dataset(
             # Adversarial accuracy
             with torch.no_grad():
                 logits_adv = model(x_adv)
-                # Safe argmax handling for adversarial logits
+                # Safe argmax for adversarial logits
                 if logits_adv.ndim == 1:
                     pred_adv = torch.tensor([int(logits_adv.argmax())], device=logits_adv.device)
                 else:

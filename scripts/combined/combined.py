@@ -20,22 +20,17 @@ class FullTopoPipeline(nn.Module):
 
     def forward(self, x):
         # latent = self.topo_model.encode(x)
-        
         # topo_img = self.topo_model.decode(latent)
-        
         topo_img = x
-
         topo_img = torch.clamp(topo_img, 0, 1)  # First clamp to [0, 1]
         topo_img = (topo_img - 0.5) / 0.5  # Then normalize to [-1, 1]
-
-        # latent_out = self.latent_nn(latent)
-        # print("latent OUT min:", latent_out.min().item(), "max:", latent_out.max().item())
-
         # Step 3: latent reformer reconstruction
         # recon_img, mu, logvar = self.latent_reformer(topo_img, latent_out)
-
         # Step 4: classification
         logits = self.classifier(topo_img)
+        # Ensure logits are always 2D (batch_size, num_classes)
+        if logits.ndim == 1:
+            logits = logits.unsqueeze(0)
         return topo_img, logits
 
 
