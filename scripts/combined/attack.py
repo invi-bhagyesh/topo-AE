@@ -587,15 +587,15 @@ if __name__ == "__main__":
         ) 
     # latent_reformer = LatentReformer()
     # latent_nn = LatentNet()
-    classifier = MNIST_CNN()
+    full_pipeline = MNIST_CNN()
 
-    full_pipeline = FullTopoPipeline(
-        # topo_model=topo_model,
-        # latent_reformer=latent_reformer,
-        # latent_nn=latent_nn,
-        classifier=classifier,
-        device=device
-    )
+    # full_pipeline = FullTopoPipeline(
+    #     # topo_model=topo_model,
+    #     # latent_reformer=latent_reformer,
+    #     # latent_nn=latent_nn,
+    #     classifier=classifier,
+    #     device=device
+    # )
     full_pipeline.load_state_dict(torch.load(args.full_pipeline_path, map_location=device))
     full_pipeline.to(device)
     full_pipeline.eval()
