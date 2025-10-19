@@ -501,7 +501,7 @@ def generate_adversarial_dataset(
                 if isinstance(logits, tuple):
                     logits = logits[1]
                 if logits.ndim == 1:
-                    logits = logits.unsqueeze(0)
+                    logits = logits.view(1, -1)
                 batch_pred = torch.argmax(logits, dim=1)
                 preds.append(batch_pred.cpu().numpy())
         return np.concatenate(preds, axis=0)
