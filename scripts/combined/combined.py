@@ -115,6 +115,7 @@ if __name__ == "__main__":
     )
     # full_pipeline.load_state_dict(torch.load("./models/models--invi-bhagyesh--topo_combined/snapshots/79cb10032ff3b0c719a6a510a0c44162c564efed/MNIST_full_pipeline.pth", map_location=device))
     # Save the full pipeline weights
+    os.makedirs('models', exist_ok=True)
     save_path = f'./models/{dataset_name}_full_pipeline.pth'
     torch.save(full_pipeline.state_dict(), save_path)
     print(f"Full pipeline weights saved at: {save_path}")
