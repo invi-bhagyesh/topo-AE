@@ -305,57 +305,109 @@ def generate_adversarial_dataset(
     # Determine base attack when wrappers like 'eot' or 'bpda' are present.
     # Accept forms like: 'pgd', 'eot_pgd', 'bpda_eot_pgd', 'apgd', 'fgsm', 'cw', 'autoattack'
     atk_lower = attack_type.lower()
-    # Allow explicit override via attack_kwargs['base_attack']
     base_attack = attack_kwargs.get('base_attack')
     if base_attack is None:
         parts = atk_lower.split('_')
         # remove wrapper tokens if present
-        parts = [p for p in parts if p not in ('eot', 'bpda')]
+        parts = [p for p in parts if p not in ('eot', 'bpda', 'reparam')]
         base_attack = parts[-1] if len(parts) > 0 else 'pgd'
     base_attack = base_attack.lower()
 
-    if base_attack == 'pgd':
-        print(f"Using PGD attack (base for '{attack_type}').")
-        attacker = torchattacks.PGD(model, eps=eps, alpha=attack_kwargs.get('alpha', 2/255), steps=attack_kwargs.get('steps', 40))
-    elif base_attack == 'fgsm':
-        print(f"Using FGSM attack (base for '{attack_type}').")
-        attacker = torchattacks.FGSM(model, eps=eps)
-    elif base_attack in ('apgd', 'apgd_dlr'):
-        print(f"Using APGD attack (base for '{attack_type}').")
-        attacker = torchattacks.APGD(model, eps=eps, steps=attack_kwargs.get('steps', 40))
-    elif base_attack == 'cw':
-        print(f"Using CW attack (base for '{attack_type}').")
-        attacker = torchattacks.CW(model, c=attack_kwargs.get('c', 10), steps=attack_kwargs.get('steps', 1000))
-    elif base_attack == 'spsa':
-        print(f"Using SPSA attack (base for '{attack_type}').")
-        try:
-            lr_val = attack_kwargs.get('alpha')
-            if lr_val is None:
-                lr_val = 2/255
+    # --- Unified attacker construction supporting BPDA+PGD, EOT+PGD, Reparam+PGD ---
+    # 1. BPDA + PGD (advertorch)
+    # 2. EOT + PGD (torchattacks)
+    # 3. Reparameterization + PGD (torchattacks)
+    attacker = None
+    # Try to import advertorch if needed
+    advertorch_available = False
+    try:
+        import advertorch
+        from advertorch.attacks import LinfPGDAttack
+        advertorch_available = True
+    except ImportError:
+        advertorch_available = False
 
-            attacker = torchattacks.SPSA(
+    # Helper to create torchattacks PGD
+    def make_torchattacks_pgd(model, eps, alpha, steps):
+        return torchattacks.PGD(model, eps=eps, alpha=alpha, steps=steps)
+
+    # Helper to create torchattacks EOT PGD
+    def make_eot_pgd(model, eps, alpha, steps, eot_samples=10):
+        # EOTWrapper is already applied to model if requested above
+        return torchattacks.PGD(model, eps=eps, alpha=alpha, steps=steps)
+
+    # Helper to create torchattacks Reparam PGD
+    def make_reparam_pgd(model, eps, alpha, steps):
+        return torchattacks.PGD(model, eps=eps, alpha=alpha, steps=steps)
+
+    # Decide which kind of attack/wrapper to use
+    if ('bpda' in atk_lower) and ('reparam' not in atk_lower):
+        # BPDA + PGD (advertorch)
+        if advertorch_available:
+            print(f"Using advertorch BPDA + PGD attack (base PGD) for '{attack_type}'.")
+            attacker = LinfPGDAttack(
                 model,
+                loss_fn=nn.CrossEntropyLoss(reduction="sum"),
                 eps=eps,
-                nb_iter=attack_kwargs.get('steps', 128),
-                nb_sample=attack_kwargs.get('spsa_samples', 128),
-                delta=attack_kwargs.get('delta', 0.01),
-                lr=lr_val,
-                max_batch_size=attack_kwargs.get('max_batch_size', 64)
+                nb_iter=attack_kwargs.get('steps', 40),
+                eps_iter=attack_kwargs.get('alpha', 2/255),
+                rand_init=True,
+                clip_min=0.0,
+                clip_max=1.0,
+                targeted=False,
             )
-        except Exception as e:
-            print(f"SPSA construction failed ({e}), falling back to PGD.")
-            attacker = torchattacks.PGD(model, eps=eps, alpha=attack_kwargs.get('alpha', 2/255), steps=attack_kwargs.get('steps', 40))
-        
-    elif base_attack == 'autoattack':
-        print(f"Using AutoAttack (base for '{attack_type}').")
-        # AutoAttack signature varies across versions. Try to construct with common kwargs and fallback.
-        try:
-            attacker = torchattacks.AutoAttack(model, norm=attack_kwargs.get('norm', 'Linf'), eps=eps, version=attack_kwargs.get('version', 'standard'))
-        except Exception as e:
-            print(f"AutoAttack construction failed ({e}), falling back to PGD.")
-            attacker = torchattacks.PGD(model, eps=eps, alpha=attack_kwargs.get('alpha', 2/255), steps=attack_kwargs.get('steps', 40))
+        else:
+            print("advertorch not available, falling back to torchattacks PGD for BPDA+PGD.")
+            attacker = make_torchattacks_pgd(model, eps, attack_kwargs.get('alpha', 2/255), attack_kwargs.get('steps', 40))
+    elif ('eot' in atk_lower) and ('reparam' not in atk_lower):
+        # EOT + PGD (torchattacks)
+        print(f"Using EOT + PGD attack (torchattacks) for '{attack_type}'.")
+        attacker = make_eot_pgd(model, eps, attack_kwargs.get('alpha', 2/255), attack_kwargs.get('steps', 40), eot_samples=attack_kwargs.get('eot_samples', 10))
+    elif 'reparam' in atk_lower:
+        # Reparameterization + PGD (torchattacks)
+        print(f"Using Reparameterization + PGD attack (torchattacks) for '{attack_type}'.")
+        attacker = make_reparam_pgd(model, eps, attack_kwargs.get('alpha', 2/255), attack_kwargs.get('steps', 40))
     else:
-        raise ValueError(f"Unknown base attack: {base_attack} parsed from attack_type='{attack_type}'. Provide a supported base attack or pass attack_kwargs['base_attack'].")
+        # Fallback to normal torchattacks construction for other attacks (FGSM, APGD, CW, etc.)
+        if base_attack == 'pgd':
+            print(f"Using PGD attack (base for '{attack_type}').")
+            attacker = torchattacks.PGD(model, eps=eps, alpha=attack_kwargs.get('alpha', 2/255), steps=attack_kwargs.get('steps', 40))
+        elif base_attack == 'fgsm':
+            print(f"Using FGSM attack (base for '{attack_type}').")
+            attacker = torchattacks.FGSM(model, eps=eps)
+        elif base_attack in ('apgd', 'apgd_dlr'):
+            print(f"Using APGD attack (base for '{attack_type}').")
+            attacker = torchattacks.APGD(model, eps=eps, steps=attack_kwargs.get('steps', 40))
+        elif base_attack == 'cw':
+            print(f"Using CW attack (base for '{attack_type}').")
+            attacker = torchattacks.CW(model, c=attack_kwargs.get('c', 10), steps=attack_kwargs.get('steps', 1000))
+        elif base_attack == 'spsa':
+            print(f"Using SPSA attack (base for '{attack_type}').")
+            try:
+                lr_val = attack_kwargs.get('alpha')
+                if lr_val is None:
+                    lr_val = 2/255
+                attacker = torchattacks.SPSA(
+                    model,
+                    eps=eps,
+                    nb_iter=attack_kwargs.get('steps', 128),
+                    nb_sample=attack_kwargs.get('spsa_samples', 128),
+                    delta=attack_kwargs.get('delta', 0.01),
+                    lr=lr_val,
+                    max_batch_size=attack_kwargs.get('max_batch_size', 64)
+                )
+            except Exception as e:
+                print(f"SPSA construction failed ({e}), falling back to PGD.")
+                attacker = torchattacks.PGD(model, eps=eps, alpha=attack_kwargs.get('alpha', 2/255), steps=attack_kwargs.get('steps', 40))
+        elif base_attack == 'autoattack':
+            print(f"Using AutoAttack (base for '{attack_type}').")
+            try:
+                attacker = torchattacks.AutoAttack(model, norm=attack_kwargs.get('norm', 'Linf'), eps=eps, version=attack_kwargs.get('version', 'standard'))
+            except Exception as e:
+                print(f"AutoAttack construction failed ({e}), falling back to PGD.")
+                attacker = torchattacks.PGD(model, eps=eps, alpha=attack_kwargs.get('alpha', 2/255), steps=attack_kwargs.get('steps', 40))
+        else:
+            raise ValueError(f"Unknown base attack: {base_attack} parsed from attack_type='{attack_type}'. Provide a supported base attack or pass attack_kwargs['base_attack'].")
 
     all_clean, all_adv, all_labels = [], [], []
     correct_clean, correct_adv, total = 0, 0, 0
@@ -549,7 +601,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Generate adversarial dataset with multiple attacks")
     parser.add_argument("--attack", type=str, default="bpda_eot", help="Attack type: apgd, pgd, autoattack, fgsm, cw, etc.")
-    parser.add_argument("--eps", type=float, default=10, help="Perturbation budget (Linf or L2 depending on attack)")
+    parser.add_argument("--eps", type=float, default=2, help="Perturbation budget (Linf or L2 depending on attack)")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu", help="Device to run on")
     parser.add_argument("--dataset", type=str, default="MNIST", choices=["MNIST", "EMNIST"], help="Dataset to use for examples")
     parser.add_argument("--batch-size", type=int, default=64, help="Dataloader batch size")
