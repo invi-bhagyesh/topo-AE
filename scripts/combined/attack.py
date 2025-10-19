@@ -367,7 +367,7 @@ def generate_adversarial_dataset(
             eps=eps,
             alpha=attack_kwargs.get('alpha', 2/255),
             steps=attack_kwargs.get('steps', 40),
-            eot_samples=attack_kwargs.get('eot_samples', 10)
+            eot_iter=attack_kwargs.get('eot_samples', 10)
         )
     elif 'reparam' in atk_lower:
         # Reparameterization + PGD (torchattacks)
