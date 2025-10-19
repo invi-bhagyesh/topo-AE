@@ -645,8 +645,7 @@ def main():
     print("="*60 + "\n")
 
 
-if __name__ == "__main__":
-    main()
+
 
 
 # ============================================================================
@@ -1279,3 +1278,4 @@ def pipeline4_test_npz_latent(opt):
     evaluate_predictions(attack_success_result, save_success_adv)
 if __name__ == "__main__":
     main()
+    
