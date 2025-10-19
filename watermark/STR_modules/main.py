@@ -102,7 +102,8 @@ NOTES:
 - All models save in current directory by default
 - Results save in --output directory (default: ./results)
 - Use --mode train to only train, --mode test to only test, --mode both for both
-"""import random
+"""
+import random
 import sys 
 import os
 import time
