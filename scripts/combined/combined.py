@@ -10,9 +10,9 @@ from src.models.approx_based import TopologicallyRegularizedAutoencoder
 
 
 class FullTopoPipeline(nn.Module):
-    def __init__(self, topo_model, classifier, device='cpu'):
+    def __init__(self, classifier, device='cpu'):
         super().__init__()
-        self.topo_model = topo_model
+        # self.topo_model = topo_model
         # self.latent_reformer = latent_reformer
         # self.latent_nn = latent_nn
         self.classifier = classifier
@@ -87,9 +87,9 @@ if __name__ == "__main__":
             toposig_kwargs={'match_edges': 'symmetric'}
         )
 
-    state_dict = torch.load(model_path, map_location=device)
-    topo_model.load_state_dict(state_dict)
-    topo_model.eval()
+    # state_dict = torch.load(model_path, map_location=device)
+    # topo_model.load_state_dict(state_dict)
+    # topo_model.eval()
 
     # latent_reformer_path = args.latent_reformer_path if args.latent_reformer_path is not None else f'./models/{dataset_name}_latent_reformer.pth'
     # latent_reformer = LatentReformer()
@@ -109,7 +109,7 @@ if __name__ == "__main__":
 
     # Combine models
     full_pipeline = FullTopoPipeline(
-        topo_model=topo_model,
+        # topo_model=topo_model,
         # latent_reformer=latent_reformer,
         # latent_nn=latent_nn,
         classifier=classifier,
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     )
     # full_pipeline.load_state_dict(torch.load("./models/models--invi-bhagyesh--topo_combined/snapshots/79cb10032ff3b0c719a6a510a0c44162c564efed/MNIST_full_pipeline.pth", map_location=device))
     # Save the full pipeline weights
-    save_path = f'./models/{dataset_name}_full_pipeline.pth'
+    save_path = f'./models/{dataset_name}_full_pipeline_classifier.pth'
     torch.save(full_pipeline.state_dict(), save_path)
     print(f"Full pipeline weights saved at: {save_path}")
 
