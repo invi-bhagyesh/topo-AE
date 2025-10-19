@@ -128,7 +128,7 @@ from feature_extraction import VGG_FeatureExtractor, ResNet_FeatureExtractor, Ba
 from transformation import TPS_SpatialTransformerNetwork
 from sequence_modeling import BidirectionalLSTM
 from prediction import CTCLabelConverter, AttnLabelConverter
-from ..utils import Logger
+from utils import Logger
 from model import Model
 
 
