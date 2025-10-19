@@ -110,27 +110,16 @@ class EOTWrapper(nn.Module):
         self.n_samples = n_samples
 
     def forward(self, x):
-        # Average logits over n stochastic forward passes.
-        # Ensure that the returned logits are differentiable w.r.t. the input.
-        logits = None
+        # Average logits over n stochastic forward passes per batch
+        logits_accum = []
         for _ in range(self.n_samples):
-            out = self.pipeline(x)[1]
-            if not out.requires_grad:
-                if hasattr(self.pipeline, 'surrogate') and self.pipeline.surrogate is not None:
-                    out = self.pipeline.surrogate(x)
-                else:
-                    # Force differentiability by cloning input and setting requires_grad=True
-                    x_ = x.clone().detach().requires_grad_(True)
-                    out = self.pipeline(x_)[1]  
-            if logits is None:
-                logits = out
-            else:
-                logits = logits + out
-        logits = logits / float(self.n_samples)
-        if isinstance(logits, tuple):
-            logits = logits[1]
-        if logits.ndim == 1:
-            logits = logits.unsqueeze(0)
+            out = self.pipeline(x)
+            if isinstance(out, tuple):
+                out = out[1]
+            if out.ndim == 1:
+                out = out.view(1, -1)
+            logits_accum.append(out)
+        logits = torch.stack(logits_accum, dim=0).mean(dim=0)
         return logits
 
 
