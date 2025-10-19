@@ -5,7 +5,7 @@ import sys
 import os
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, parent_dir)
-from .reformer import LatentReformer, LatentNet, MNIST_CNN
+from .reformer import LatentReformer, LatentNet, MNIST_CNN, EMNIST_CNN
 from src.models.approx_based import TopologicallyRegularizedAutoencoder
 
 
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     classifier_path = args.classifier_path # if args.classifier_path is not None else f'./models/{dataset_name}_classifier.pth'
     print("Classifier path:", classifier_path, "Exists:", os.path.exists(classifier_path))
 
-    classifier = MNIST_CNN()
+    classifier = EMNIST_CNN()
     classifier.load_state_dict(torch.load(classifier_path, map_location=device))
 
 
@@ -138,13 +138,20 @@ if __name__ == "__main__":
     from torch.utils.data import DataLoader
     import torch.nn.functional as F
 
-    # Load MNIST test set
+    # Load test set according to dataset_name
     # CHANGE: Added normalization to match classifier training
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.5,), (0.5,))  # Normalize to [-1, 1]
     ])
-    test_dataset = datasets.MNIST(root="./data", train=False, download=True, transform=transform)
+    if dataset_name == 'MNIST':
+        test_dataset = datasets.MNIST(root="./data", train=False, download=True, transform=transform)
+    elif dataset_name == 'EMNIST':
+        test_dataset = datasets.EMNIST(root="./data", split='letters', train=False, download=True, transform=transform)
+        test_dataset.targets -= 1
+    else:
+        print(f"Warning: No test set defined for dataset {dataset_name}")
+        test_dataset = datasets.MNIST(root="./data", train=False, download=True, transform=transform)
     test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
 
     clean_correct, topo_correct, recon_correct = 0, 0, 0
