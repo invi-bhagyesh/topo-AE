@@ -381,7 +381,11 @@ def generate_adversarial_dataset(
                 logits_clean = model(z_clean)
             else:
                 logits_clean = model(clean_img)
-            pred_clean = torch.argmax(logits_clean, dim=1)
+            # Safe argmax handling for clean logits
+            if logits_clean.ndim == 1:
+                pred_clean = torch.tensor([int(logits_clean.argmax())], device=logits_clean.device)
+            else:
+                pred_clean = torch.argmax(logits_clean, dim=1)
             correct_clean += (pred_clean == label).sum().item()
 
         # Generate adversarial examples
@@ -434,7 +438,11 @@ def generate_adversarial_dataset(
                     logits_adv = pipeline.surrogate(x_adv)
                 else:
                     logits_adv = pipeline(x_adv)[1]
-                pred_adv = torch.argmax(logits_adv, dim=1)
+                # Safe argmax handling for adversarial logits
+                if logits_adv.ndim == 1:
+                    pred_adv = torch.tensor([int(logits_adv.argmax())], device=logits_adv.device)
+                else:
+                    pred_adv = torch.argmax(logits_adv, dim=1)
                 correct_adv += (pred_adv == label).sum().item()
 
         else:
@@ -443,7 +451,11 @@ def generate_adversarial_dataset(
             # Adversarial accuracy
             with torch.no_grad():
                 logits_adv = model(x_adv)
-                pred_adv = torch.argmax(logits_adv, dim=1)
+                # Safe argmax handling for adversarial logits
+                if logits_adv.ndim == 1:
+                    pred_adv = torch.tensor([int(logits_adv.argmax())], device=logits_adv.device)
+                else:
+                    pred_adv = torch.argmax(logits_adv, dim=1)
                 correct_adv += (pred_adv == label).sum().item()
 
         total += clean_img.size(0)
