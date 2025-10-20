@@ -1,5 +1,7 @@
 import torch.nn as nn
 import torch
+import sys, os
+sys.path.append(os.path.dirname(__file__))
 from transformation import TPS_SpatialTransformerNetwork
 from feature_extraction import VGG_FeatureExtractor, ResNet_FeatureExtractor
 from sequence_modeling import BidirectionalLSTM
