@@ -649,7 +649,7 @@ if __name__ == "__main__":
         ) 
     # latent_reformer = LatentReformer()
     # latent_nn = LatentNet()
-    classifier = EMNIST_CNN()
+    classifier = MNIST_CNN()
 
     full_pipeline = FullTopoPipeline(
         topo_model=topo_model,
