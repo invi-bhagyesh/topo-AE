@@ -528,6 +528,50 @@ def generate_adversarial_dataset(
         'attack_success_rate': attack_success_rate
     }
 
+
+# --- Latent manifold visualization utility ---
+def visualize_latent_manifold(pipeline, all_clean, all_adv_eot, all_adv_bpda, labels, device='cuda'):
+    import numpy as np
+    import torch
+    from umap import UMAP
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+    from matplotlib import rcParams
+
+    rcParams['figure.dpi'] = 300
+    rcParams['savefig.dpi'] = 600
+    rcParams['axes.labelsize'] = 10
+    rcParams['axes.titlesize'] = 12
+    rcParams['font.family'] = 'sans-serif'
+    rcParams['font.sans-serif'] = ['Arial']
+    sns.set(style='white', context='paper', font_scale=1.1)
+
+    pipeline.eval()
+    with torch.no_grad():
+        z_clean = pipeline.encode(torch.tensor(all_clean, device=device)).detach().cpu().numpy()
+        z_eot   = pipeline.encode(torch.tensor(all_adv_eot, device=device)).detach().cpu().numpy()
+        z_bpda  = pipeline.encode(torch.tensor(all_adv_bpda, device=device)).detach().cpu().numpy()
+
+    reducer = UMAP(n_neighbors=15, min_dist=0.1, spread=1.0, metric='cosine', random_state=42, n_components=2)
+    z_all = np.concatenate([z_clean, z_eot, z_bpda], axis=0)
+    embedding = reducer.fit_transform(z_all)
+
+    n = len(z_clean)
+    zc, ze, zb = embedding[:n], embedding[n:2*n], embedding[2*n:]
+
+    plt.figure(figsize=(10,5))
+    cmap = sns.color_palette("Spectral", as_cmap=True)
+    plt.scatter(zc[:,0], zc[:,1], c=labels, cmap=cmap, s=5, alpha=0.7, label='Clean')
+    plt.scatter(ze[:,0], ze[:,1], c=labels, cmap=cmap, s=5, marker='x', alpha=0.6, label='EOT')
+    plt.scatter(zb[:,0], zb[:,1], c=labels, cmap=cmap, s=5, marker='^', alpha=0.6, label='BPDA')
+
+    plt.legend(frameon=False, loc='upper right', fontsize=8)
+    plt.axis('off')
+    plt.title("Latent-space UMAP projection: Clean vs EOT vs BPDA")
+    plt.tight_layout()
+    plt.savefig("latent_umap_landscape.svg", bbox_inches='tight')
+    plt.show()
+
 if __name__ == "__main__":
     import argparse
 
@@ -644,3 +688,24 @@ if __name__ == "__main__":
     print(f"Clean accuracy: {result['clean_accuracy']:.2f}%")
     print(f"Adversarial accuracy: {result['adversarial_accuracy']:.2f}%")
     print(f"Attack success rate: {result['attack_success_rate']:.2f}%") 
+
+    # --- Optional latent manifold visualization (requires UMAP + seaborn) ---
+    import numpy as np
+
+    if args.attack in ['bpda', 'eot', 'bpda_eot']:
+        try:
+            clean_data = np.load("adversarial_dataset.npz")  # from current run
+            eot_data = np.load("adv_eot.npz", allow_pickle=True) if os.path.exists("adv_eot.npz") else None
+            bpda_data = np.load("adv_bpda.npz", allow_pickle=True) if os.path.exists("adv_bpda.npz") else None
+
+            if eot_data is not None and bpda_data is not None:
+                visualize_latent_manifold(
+                    pipeline=full_pipeline,
+                    all_clean=clean_data['clean_images'],
+                    all_adv_eot=eot_data['adversarial_images'],
+                    all_adv_bpda=bpda_data['adversarial_images'],
+                    labels=clean_data['labels'],
+                    device=device
+                )
+        except Exception as e:
+            print(f"Visualization skipped ({e})")
