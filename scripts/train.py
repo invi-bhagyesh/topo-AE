@@ -1071,6 +1071,8 @@ def extract_latents_and_reconstructions(
     #     print(f"  - label: {labels.shape} (digit labels 0-9)")
     #     print(f"  - latent: {latents.shape} (latent representations)")
         ### This is the dataloading part
+
+        
 def extract_manually(model, dataloader, device):
     
     """Manually extract latents if get_space function fails."""

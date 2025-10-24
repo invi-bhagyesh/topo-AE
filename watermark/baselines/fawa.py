@@ -59,6 +59,7 @@ def fawa(opt):
 
     attacker = WM_Attacker(opt)
     time_all, suc, ED_sum = 0, 0, 0
+    total_chars, correct_chars, pred_chars_total = 0, 0, 0
     for i, data in enumerate(dataloader, start=0):
         label = data[1]
         img = data[5] # binary image
@@ -130,7 +131,15 @@ def fawa(opt):
         adv_text_mask = np2tensor(adv_text_mask)
         
         attacker.init()
-        adv_img_wm, delta, epoch, preds, flag, ED, time = attacker.wm_attack(wm_img, label, wm_mask, adv_text_mask)  
+        adv_img_wm, delta, epoch, preds, flag, ED, time = attacker.wm_attack(wm_img, label, wm_mask, adv_text_mask)
+
+        # Character-level metrics
+        pred_str = str(preds)
+        gt_str = str(label[0])
+        min_len = min(len(pred_str), len(gt_str))
+        correct_chars += sum([1 for i in range(min_len) if pred_str[i] == gt_str[i]])
+        total_chars += len(gt_str)
+        pred_chars_total += len(pred_str)
 
         print('wmimg-{}_path:{} --iters:{} --Success:{} --prediction:{} --groundtruth:{} --edit_distance:{} --time:{}'
                 .format(i, img_path, epoch, flag, preds, label[0], ED, time))
@@ -142,9 +151,18 @@ def fawa(opt):
         vutils.save_image(adv_img_wm,"{}/{}_{}_adv.png".format(wm_save_adv_path, os.path.basename(img_index), label[0]))
         vutils.save_image(delta*100,"{}/{}_{}_delta.png".format(wm_save_per_path, os.path.basename(img_index), label[0]))
     
-    print('FAWA_Total_attack_time:{} '.format(time_all))
+    char_accuracy = correct_chars / total_chars * 100 if total_chars > 0 else 0
+    char_precision = correct_chars / pred_chars_total * 100 if pred_chars_total > 0 else 0
+    char_recall = correct_chars / total_chars * 100 if total_chars > 0 else 0
+    word_asr = suc / len(dataloader) * 100 if len(dataloader) > 0 else 0
+
+    print('FAWA_Total_attack_time: {:.2f}s'.format(time_all))
     print('ASR:{:.2f}% '.format((suc/len(dataloader))*100))
-    print('Average Edit_distance: {}'.format(ED_sum/suc))
+    print('Word-level Attack Success Rate (ASR): {:.2f}%'.format(word_asr))
+    print('Character-level Accuracy: {:.2f}%'.format(char_accuracy))
+    print('Character-level Precision: {:.2f}%'.format(char_precision))
+    print('Character-level Recall: {:.2f}%'.format(char_recall))
+    print('Average Edit Distance: {:.2f}'.format(ED_sum/suc if suc>0 else 0))
 
 
 
