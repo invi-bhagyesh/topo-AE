@@ -1,6 +1,5 @@
 """Datasets."""
 import os
-
 import torch
 from torchvision import datasets
 from torchvision import transforms
