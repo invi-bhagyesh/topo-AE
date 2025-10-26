@@ -9,6 +9,12 @@ https://arxiv.org/abs/2205.14135
 
 ![TopoReformer](assets/toporeformer.png)
 
+```bash
+git clone https://github.com/invi-bhagyesh/TopoReformer
+cd TopoReformer
+git checkout aravinth
+```
+
 Setup
 
 ```bash
@@ -18,20 +24,20 @@ pip install -r requirements.txt
 ## Topological Autoencoder
 
 ```bash
-dataset = "MNIST" # MNIST, EMNIST, SYN
+dataset = "MNIST" # Choose the dataset to train -> MNIST, EMNIST, SYN
 
 python -m exp.train_model -F test_runs with experiments/train_model/best_runs/dataset/TopoRegEdgeSymmetric.json device='cuda' evaluation.save_training_latents=True
 ```
 
 ## OCR
-Pretrained OCR model weights available at [hugging face](https://huggingface.co/datasets/invi-bhagyesh/ocr/tree/main/models)
+Pretrained OCR model weights available at [Hugging Face](https://huggingface.co/datasets/invi-bhagyesh/ocr/tree/main/models)  
 
-To generate FAWA attack on an ocr model, change Transformation, FeatureExtraction, SequrnceModelling, and Prediction according to the type of model being used and run:
+To generate FAWA attack on an OCR model, change Transformation, FeatureExtraction, SequenceModelling, and Prediction according to the type of model being used and run:
 
 ```bash
 str_model_path = "/kaggle/input/invi_str_model/pytorch/default/9/CRNN_VGG_BiLSTM_CTC_model.pth" # provide path to the model
-output_path = /kaggle/working/output # provide ouput path
-!python baselines/fawa.py \
+output_path = /kaggle/working/output # provide output path
+!python watermark/baselines/fawa.py \
   --root data/protego/test \
   --save_attacks output_path \
   --iter_num 2000 \
@@ -42,3 +48,4 @@ output_path = /kaggle/working/output # provide ouput path
   --FeatureExtraction VGG \
   --SequenceModeling BiLSTM \
   --Prediction CTC
+```
