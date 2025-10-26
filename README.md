@@ -49,3 +49,7 @@ output_path = /kaggle/working/output # provide output path
   --SequenceModeling BiLSTM \
   --Prediction CTC
 ```
+
+# Generate Adaptive Attacks
+To generate Adaptive attacks, provide `--attack` and `--dataset`
+`python -m scripts.combined.attack --attack atk_type`
