@@ -1,14 +1,14 @@
-# TopoReformer
-
+# TopoReformer  
 This repository provides the official implementation of TopoReformer from the
 following paper.
 
 **TopoReformer: Topological Purification for Vision and OCR Robustness**  
-Bhagyesh Kumar*, A S Aravinthakashan*, Akshat Satyanarayan*, Ishaan Gakhar, Ujjwal VermaPaper:  
-https://arxiv.org/abs/2205.14135
+Bhagyesh Kumar*, A S Aravinthakashan*, Akshat Satyanarayan*, Ishaan Gakhar, Ujjwal Verma  
+Paper:  
 
 ![TopoReformer](assets/toporeformer.png)
 
+Run
 ```bash
 git clone https://github.com/invi-bhagyesh/TopoReformer
 cd TopoReformer
@@ -22,6 +22,7 @@ pip install -r requirements.txt
 ```
 
 ## Topological Autoencoder
+To train the Topological Autoencoder, select the dataset and run:
 
 ```bash
 dataset = "MNIST" # Choose the dataset to train -> MNIST, EMNIST, SYN
@@ -49,3 +50,13 @@ output_path = /kaggle/working/output # provide output path
   --SequenceModeling BiLSTM \
   --Prediction CTC
 ```
+
+# Generate Adaptive Attacks
+To generate Adaptive attacks, provide `--attack` and `--dataset`
+```bash
+python -m scripts.combined.attack --attack atk_type
+```
+
+# Acknowledgement
+- This repo is partially based on [Protego](https://github.com/Ruby-He/ProTegO), [Topological Autoencoders](https://github.com/BorgwardtLab/topological-autoencoders).
+- The Pretrained OCR models are provided by [Protego](https://github.com/Ruby-He/ProTegO).
