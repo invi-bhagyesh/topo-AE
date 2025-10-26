@@ -22,7 +22,7 @@ pip install -r requirements.txt
 ```
 
 ## Topological Autoencoder
-To train the the Topological Autoencoder, select dataset and run:
+To train the Topological Autoencoder, select the dataset and run:
 
 ```bash
 dataset = "MNIST" # Choose the dataset to train -> MNIST, EMNIST, SYN
