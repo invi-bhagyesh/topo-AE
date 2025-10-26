@@ -24,7 +24,7 @@ python -m exp.train_model -F test_runs with experiments/train_model/best_runs/da
 ```
 
 ## OCR
-Pretrained OCR model weights available at ![hugging face](https://huggingface.co/datasets/invi-bhagyesh/ocr/tree/main/models)
+Pretrained OCR model weights available at [hugging face](https://huggingface.co/datasets/invi-bhagyesh/ocr/tree/main/models)
 
 To generate FAWA attack on an ocr model, change Transformation, FeatureExtraction, SequrnceModelling, and Prediction according to the type of model being used and run:
 
