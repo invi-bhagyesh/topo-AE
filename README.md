@@ -5,7 +5,6 @@ following paper.
 **TopoReformer: Topological Purification for Vision and OCR Robustness**  
 Bhagyesh Kumar*, A S Aravinthakashan*, Akshat Satyanarayan*, Ishaan Gakhar, Ujjwal Verma  
 Paper:  
-https://arxiv.org/abs/2205.14135
 
 ![TopoReformer](assets/toporeformer.png)
 
