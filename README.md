@@ -9,6 +9,7 @@ https://arxiv.org/abs/2205.14135
 
 ![TopoReformer](assets/toporeformer.png)
 
+Run
 ```bash
 git clone https://github.com/invi-bhagyesh/TopoReformer
 cd TopoReformer
