@@ -1,4 +1,4 @@
-# TopoReformer: Topological Purification for Vision and OCR Robustness  
+# TopoReformer  
 This repository provides the official implementation of TopoReformer from the
 following paper.
 
