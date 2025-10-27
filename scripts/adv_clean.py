@@ -230,7 +230,7 @@ def extract_latents_and_reconstructions(
     device='cpu'
 ):
     print(f"Loading pre-trained DeepAE Autoencoder...")
-    model = DeepAE(input_dims=(1, 28, 28))
+    model = Autoencoder()
     state_dict = torch.load(model_path, map_location=device)
     model.load_state_dict(state_dict)
     model.eval()
