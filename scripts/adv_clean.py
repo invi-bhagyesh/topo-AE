@@ -431,7 +431,7 @@ def process_clean_mnist(
 if __name__ == "__main__":
     model_path = "clean_autoencoder.pth"
     base_data_dir = "/kaggle/input/purification/medmnist/mnist"  # or your actual data directory path
-    output_dir = "./output"
+    output_dir = "./new"
 
     # If model file doesn't exist, train DeepAE first
     if not os.path.exists(model_path):
