@@ -38,7 +38,13 @@ class AutoencoderModel(nn.Module, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def decode(self, z):
         """Compute reconstruction."""
+class View(nn.Module):
+    def __init__(self, shape):
+        super().__init__()
+        self.shape = shape
 
+    def forward(self, x):
+        return x.view(*self.shape)
 
 class DeepAE(AutoencoderModel):
     """1000-500-250-2-250-500-1000."""
