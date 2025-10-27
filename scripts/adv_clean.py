@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Inference and visualization script for a standard Autoencoder on clean and adversarial MNIST data."""
-from src/models/base.py import AutoencoderModel
 import torch
 import numpy as np
 import os
@@ -9,6 +8,8 @@ from pathlib import Path
 import pandas as pd
 from torch import nn
 from torch.utils.data import DataLoader
+from src.models.base.py import AutoencoderModel
+
 class DeepAE(AutoencoderModel):
     """1000-500-250-2-250-500-1000."""
     def __init__(self, input_dims=(1, 28, 28)):
