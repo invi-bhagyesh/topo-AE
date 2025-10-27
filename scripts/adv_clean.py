@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Inference and visualization script for a standard Autoencoder on clean and adversarial MNIST data."""
-
+from TopoReformer/src/models/base.py import AutoencoderModel
 import torch
 import numpy as np
 import os
