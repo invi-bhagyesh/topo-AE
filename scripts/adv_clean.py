@@ -257,21 +257,8 @@ def extract_latents_and_reconstructions(
     )
     print(f"Saved complete data to {npz_path}")
     try:
-        from sklearn.manifold import TSNE
-        import matplotlib.pyplot as plt
-        print("Visualizing latent space with t-SNE...")
-        latent_2d = TSNE(n_components=2, perplexity=30, random_state=42).fit_transform(latent)
-        plt.figure(figsize=(8, 8))
-        scatter = plt.scatter(latent_2d[:, 0], latent_2d[:, 1], c=labels, cmap='tab10', s=5)
-        plt.colorbar(scatter)
-        plt.title(f"t-SNE Latent Space Visualization ({attack_type or 'all'})")
-        plt.xlabel("t-SNE 1")
-        plt.ylabel("t-SNE 2")
-        plot_path = os.path.join(output_dir, f"{base_name}_latent_tsne.png")
-        plt.savefig(plot_path, dpi=300)
-        plt.close()
-        print(f"Saved latent visualization to {plot_path}")
         from sklearn.decomposition import PCA
+        import matplotlib.pyplot as plt
         print("Visualizing latent space with PCA...")
         latent_pca = PCA(n_components=2).fit_transform(latent)
         plt.figure(figsize=(8, 8))
