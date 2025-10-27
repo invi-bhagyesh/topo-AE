@@ -114,10 +114,10 @@ class Autoencoder(nn.Module):
             nn.ReLU(),
             nn.Linear(256, 64),
             nn.ReLU(),
-            nn.Linear(64, 16)
+            nn.Linear(64, 2)
         )
         self.decoder = nn.Sequential(
-            nn.Linear(16, 64),
+            nn.Linear(2, 64),
             nn.ReLU(),
             nn.Linear(64, 256),
             nn.ReLU(),
@@ -388,8 +388,8 @@ def process_clean_mnist(
         transform=transform
     )
     dataloader = DataLoader(mnist_test, batch_size=batch_size, shuffle=False, drop_last=False)
-    print(f"Loading pre-trained DeepAE Autoencoder from {model_path}...")
-    model = DeepAE(input_dims=(1, 28, 28))
+    print(f"Loading pre-trained simple Autoencoder from {model_path}...")
+    model = Autoencoder()
     state_dict = torch.load(model_path, map_location=device)
     model.load_state_dict(state_dict)
     model.eval()
