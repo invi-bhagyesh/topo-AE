@@ -410,28 +410,67 @@ if __name__ == "__main__":
         print("No trained DeepAE found. Training on clean MNIST...")
         from torchvision import datasets, transforms
         from torch import optim
+        from torch.utils.data import random_split
         transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Lambda(lambda x: x * 2 - 1)
         ])
-        train_data = datasets.MNIST(root='./mnist_data', train=True, download=True, transform=transform)
+        full_train_data = datasets.MNIST(root='./mnist_data', train=True, download=True, transform=transform)
+        # Split into train and validation (90% train, 10% val)
+        n_total = len(full_train_data)
+        n_val = int(0.1 * n_total)
+        n_train = n_total - n_val
+        train_data, val_data = random_split(full_train_data, [n_train, n_val], generator=torch.Generator().manual_seed(42))
         train_loader = DataLoader(train_data, batch_size=128, shuffle=True)
+        val_loader = DataLoader(val_data, batch_size=128, shuffle=False)
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         model = DeepAE(input_dims=(1, 28, 28)).to(device)
         criterion = nn.MSELoss()
         optimizer = optim.Adam(model.parameters(), lr=1e-3)
-        for epoch in range(10):
+        num_epochs = 100
+        patience = 10
+        best_val_loss = float('inf')
+        epochs_no_improve = 0
+        best_model_state = None
+        for epoch in range(num_epochs):
+            model.train()
+            train_losses = []
             for imgs, _ in train_loader:
                 imgs = imgs.to(device)
                 recon = model(imgs)
-                # DeepAE returns (reconst_error, dict)
                 loss = recon[0]
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-            print(f"Epoch {epoch+1}, Loss: {loss.item():.4f}")
-        torch.save(model.state_dict(), model_path)
-        print(f"Trained DeepAE saved to {model_path}")
+                train_losses.append(loss.item())
+            train_loss = np.mean(train_losses)
+            # Validation
+            model.eval()
+            val_losses = []
+            with torch.no_grad():
+                for imgs, _ in val_loader:
+                    imgs = imgs.to(device)
+                    recon = model(imgs)
+                    val_loss = recon[0]
+                    val_losses.append(val_loss.item())
+            val_loss_mean = np.mean(val_losses)
+            print(f"Epoch {epoch+1}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss_mean:.4f}")
+            # Early stopping
+            if val_loss_mean < best_val_loss - 1e-6:
+                best_val_loss = val_loss_mean
+                best_model_state = model.state_dict()
+                epochs_no_improve = 0
+                torch.save(best_model_state, model_path)
+                print(f"  (Best model so far, saved to {model_path})")
+            else:
+                epochs_no_improve += 1
+            if epochs_no_improve >= patience:
+                print(f"Early stopping triggered after {epoch+1} epochs.")
+                break
+        # If not already saved, save final model
+        if best_model_state is not None and not os.path.exists(model_path):
+            torch.save(best_model_state, model_path)
+        print(f"Best DeepAE saved to {model_path}")
 
     process_clean_mnist(model_path, output_dir)
     process_all_attacks(model_path, base_data_dir, output_dir)
