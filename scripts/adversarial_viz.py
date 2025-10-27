@@ -320,15 +320,15 @@ def extract_latents_and_reconstructions(
         plt.savefig(pca_plot_path, dpi=300)
         plt.close()
         print(f"Saved PCA latent visualization to {pca_plot_path}")
-
+        plot_path = os.path.join(output_dir, f"Changed_{base_name}_latent_pca_.png")
+        visualize_latents(latent, labels, plot_path)
     except ImportError:
         print("scikit-learn or matplotlib not installed, skipping latent visualization.")
     except Exception as e:
         print(f"Latent visualization failed: {e}")
 
     return latent, labels, original_images, reconstructed_images
-plot_path = os.path.join(output_dir, f"Changed_{base_name}_latent_pca_.png")
-visualize_latents(latent, labels, plot_path)
+
 def process_all_attacks(
     model_path,
     base_data_dir,
