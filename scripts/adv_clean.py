@@ -452,7 +452,7 @@ if __name__ == "__main__":
         train_loader = DataLoader(train_data, batch_size=128, shuffle=True)
         val_loader = DataLoader(val_data, batch_size=128, shuffle=False)
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        model = DeepAE(input_dims=(1, 28, 28)).to(device)
+        model = Autoencoder()
         criterion = nn.MSELoss()
         optimizer = optim.Adam(model.parameters(), lr=1e-3)
         num_epochs = 100
