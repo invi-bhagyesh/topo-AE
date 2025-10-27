@@ -308,7 +308,7 @@ def process_clean_mnist(
 
 if __name__ == "__main__":
     model_path = "clean_autoencoder.pth"
-    base_data_dir = "./adversarial_mnist"
+    base_data_dir = "./kaggle/input/purification/medmnist/mnist"  # or your actual data directory path
     output_dir = "./output"
 
     # If model file doesn't exist, train Autoencoder first
