@@ -8,7 +8,37 @@ from pathlib import Path
 import pandas as pd
 from torch import nn
 from torch.utils.data import DataLoader
-from src.models.base.py import AutoencoderModel
+"""Base class for autoencoder models."""
+import abc
+from typing import Dict, Tuple
+
+import torch.nn as nn
+
+
+class AutoencoderModel(nn.Module, metaclass=abc.ABCMeta):
+    """Abstract base class for autoencoders."""
+
+    # pylint: disable=W0221
+    @abc.abstractmethod
+    def forward(self, x) -> Tuple[float, Dict[str, float]]:
+        """Compute loss for model.
+
+        Args:
+            x: Tensor with data
+
+        Returns:
+            Tuple[loss, dict(loss_component_name -> loss_component)]
+
+        """
+
+    @abc.abstractmethod
+    def encode(self, x):
+        """Compute latent representation."""
+
+    @abc.abstractmethod
+    def decode(self, z):
+        """Compute reconstruction."""
+
 
 class DeepAE(AutoencoderModel):
     """1000-500-250-2-250-500-1000."""
