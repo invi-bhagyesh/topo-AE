@@ -204,6 +204,23 @@ class AdversarialMNISTDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         return torch.FloatTensor(self.data[idx]), self.labels[idx]
 
+
+# --- Patch: Setup sys.path and import get_space as in adversarial_viz_topoAE.py ---
+import sys
+from pathlib import Path
+# Determine project root (parent of scripts/)
+src_path = Path(__file__).resolve().parent.parent  # project root
+if not (src_path / 'src').exists():
+    raise ImportError(f"Could not find src directory at {src_path / 'src'}")
+# Add project root to Python path so "src" is a package
+sys.path.insert(0, str(src_path))
+try:
+    from src.evaluation.utils import get_space
+except ImportError as e:
+    print(f"Import error: {e}")
+    print("Please ensure the src directory is in your Python path")
+    sys.exit(1)
+
 def extract_latents_and_reconstructions(
     model_path,
     data_dir,
@@ -222,31 +239,45 @@ def extract_latents_and_reconstructions(
     print(f"Creating dataset from {data_dir}...")
     dataset = AdversarialMNISTDataset(data_dir, attack_type)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=False)
-    print("Extracting latent representations...")
-    all_latents = []
-    all_labels = []
-    all_original = []
+    print("Extracting latent representations using get_space...")
+    latent, labels = get_space(
+        model,
+        dataloader,
+        mode='latent',
+        device=device
+    )
+    print(f"Latent space shape: {latent.shape}")
+    print(f"Labels shape: {labels.shape}")
+    # 4. Extract reconstructed images
+    print("Extracting reconstructed images...")
     all_reconstructions = []
+    all_original = []
+    model.eval()
     with torch.no_grad():
-        for images, labels in dataloader:
+        for batch_idx, (images, batch_labels) in enumerate(dataloader):
             if device == 'cuda':
                 images = images.cuda()
-            latents = model.encode(images)
-            reconst = model.decode(latents)
-            all_latents.append(latents.detach().cpu().numpy())
-            all_labels.append(labels)
-            all_original.append(images.detach().cpu().numpy())
-            all_reconstructions.append(reconst.detach().cpu().numpy())
-    latent = np.concatenate(all_latents, axis=0)
-    labels = np.concatenate(all_labels, axis=0)
+            # Get latent and reconstruction
+            latent_batch = model.encode(images)
+            reconst_batch = model.decode(latent_batch)
+            # Convert to numpy
+            images_np = images.detach().cpu().numpy()
+            reconst_np = reconst_batch.detach().cpu().numpy()
+            all_original.append(images_np)
+            all_reconstructions.append(reconst_np)
+            if batch_idx % 10 == 0:
+                print(f"Processed batch {batch_idx}")
+    # Concatenate all batches
     original_images = np.concatenate(all_original, axis=0)
     reconstructed_images = np.concatenate(all_reconstructions, axis=0)
+    print(f"Original images shape: {original_images.shape}")
+    print(f"Reconstructed images shape: {reconstructed_images.shape}")
+    # 5. Save everything
     os.makedirs(output_dir, exist_ok=True)
     if attack_type:
         base_name = f"adversarial_mnist_{attack_type.replace(' ', '_')}"
     else:
         base_name = "adversarial_mnist_all"
-    # Save to NPZ (everything: latents, labels, original, reconstructed)
     npz_path = os.path.join(output_dir, f"{base_name}_complete.npz")
     np.savez(
         npz_path,
@@ -257,8 +288,21 @@ def extract_latents_and_reconstructions(
     )
     print(f"Saved complete data to {npz_path}")
     try:
-        from sklearn.decomposition import PCA
+        from sklearn.manifold import TSNE
         import matplotlib.pyplot as plt
+        print("Visualizing latent space with t-SNE...")
+        latent_2d = TSNE(n_components=2, perplexity=30, random_state=42).fit_transform(latent)
+        plt.figure(figsize=(8, 8))
+        scatter = plt.scatter(latent_2d[:, 0], latent_2d[:, 1], c=labels, cmap='tab10', s=5)
+        plt.colorbar(scatter)
+        plt.title(f"t-SNE Latent Space Visualization ({attack_type or 'all'})")
+        plt.xlabel("t-SNE 1")
+        plt.ylabel("t-SNE 2")
+        plot_path = os.path.join(output_dir, f"{base_name}_latent_tsne.png")
+        plt.savefig(plot_path, dpi=300)
+        plt.close()
+        print(f"Saved latent visualization to {plot_path}")
+        from sklearn.decomposition import PCA
         print("Visualizing latent space with PCA...")
         latent_pca = PCA(n_components=2).fit_transform(latent)
         plt.figure(figsize=(8, 8))
