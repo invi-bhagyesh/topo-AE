@@ -11,6 +11,25 @@ import glob
 
 import sys
 from pathlib import Path
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+
+def visualize_latents(latents, labels, save_file=None):
+    # if more than 2 dimensions, reduce to 2 with PCA
+    if latents.shape[1] > 2:
+        latents = PCA(n_components=2).fit_transform(latents)
+
+    plt.figure(figsize=(8, 8))
+    scatter = plt.scatter(latents[:, 0], latents[:, 1], c=labels, cmap='tab10', s=5)
+    plt.colorbar(scatter)
+    plt.xlabel("PC 1")
+    plt.ylabel("PC 2")
+    plt.title("PCA Latent Space Visualization")
+    if save_file:
+        plt.savefig(save_file, dpi=300)
+        plt.close()
+    else:
+        plt.show()
 
 # Resolve the src directory two levels up from this script
 # src_path = Path(__file__).resolve().parent.parent / 'src'
@@ -199,7 +218,7 @@ def extract_latents_and_reconstructions(
         dataloader,
         mode='latent',
         device=device
-    )
+    )   
     
     print(f"Latent space shape: {latent.shape}")
     print(f"Labels shape: {labels.shape}")
@@ -308,7 +327,8 @@ def extract_latents_and_reconstructions(
         print(f"Latent visualization failed: {e}")
 
     return latent, labels, original_images, reconstructed_images
-
+plot_path = os.path.join(output_dir, f"Changed_{base_name}_latent_pca_.png")
+visualize_latents(latent, labels, plot_path)
 def process_all_attacks(
     model_path,
     base_data_dir,
