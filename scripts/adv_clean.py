@@ -229,7 +229,7 @@ def extract_latents_and_reconstructions(
     batch_size=126,
     device='cpu'
 ):
-    print(f"Loading pre-trained DeepAE Autoencoder...")
+    print(f"Loading pre-trained Autoencoder...")
     model = Autoencoder()
     state_dict = torch.load(model_path, map_location=device)
     model.load_state_dict(state_dict)
@@ -433,9 +433,9 @@ if __name__ == "__main__":
     base_data_dir = "/kaggle/input/purification/medmnist/mnist"  # or your actual data directory path
     output_dir = "./new"
 
-    # If model file doesn't exist, train DeepAE first
+    # If model file doesn't exist, train Autoencoder first
     if not os.path.exists(model_path):
-        print("No trained DeepAE found. Training on clean MNIST...")
+        print("No trained Autoencoder found. Training on clean MNIST...")
         from torchvision import datasets, transforms
         from torch import optim
         from torch.utils.data import random_split
@@ -452,7 +452,7 @@ if __name__ == "__main__":
         train_loader = DataLoader(train_data, batch_size=128, shuffle=True)
         val_loader = DataLoader(val_data, batch_size=128, shuffle=False)
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        model = Autoencoder()
+        model = Autoencoder().to(device)
         criterion = nn.MSELoss()
         optimizer = optim.Adam(model.parameters(), lr=1e-3)
         num_epochs = 100
@@ -466,7 +466,7 @@ if __name__ == "__main__":
             for imgs, _ in train_loader:
                 imgs = imgs.to(device)
                 recon = model(imgs)
-                loss = recon[0]
+                loss = criterion(recon, imgs)
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
@@ -479,7 +479,7 @@ if __name__ == "__main__":
                 for imgs, _ in val_loader:
                     imgs = imgs.to(device)
                     recon = model(imgs)
-                    val_loss = recon[0]
+                    val_loss = criterion(recon, imgs)
                     val_losses.append(val_loss.item())
             val_loss_mean = np.mean(val_losses)
             print(f"Epoch {epoch+1}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss_mean:.4f}")
@@ -498,7 +498,7 @@ if __name__ == "__main__":
         # If not already saved, save final model
         if best_model_state is not None and not os.path.exists(model_path):
             torch.save(best_model_state, model_path)
-        print(f"Best DeepAE saved to {model_path}")
+        print(f"Best Autoencoder saved to {model_path}")
 
     process_clean_mnist(model_path, output_dir)
     process_all_attacks(model_path, base_data_dir, output_dir)
