@@ -246,10 +246,7 @@ def extract_latents_and_reconstructions(
         base_name = f"adversarial_mnist_{attack_type.replace(' ', '_')}"
     else:
         base_name = "adversarial_mnist_all"
-    csv_path = os.path.join(output_dir, f"{base_name}_latents.csv")
-    df = pd.DataFrame(latent)
-    df['labels'] = labels
-    df.to_csv(csv_path, index=False)
+    # Save to NPZ (everything: latents, labels, original, reconstructed)
     npz_path = os.path.join(output_dir, f"{base_name}_complete.npz")
     np.savez(
         npz_path,
@@ -258,7 +255,6 @@ def extract_latents_and_reconstructions(
         original_images=original_images,
         reconstructed_images=reconstructed_images
     )
-    print(f"Saved latents to {csv_path}")
     print(f"Saved complete data to {npz_path}")
     try:
         from sklearn.manifold import TSNE
@@ -382,10 +378,6 @@ def process_clean_mnist(
     original_images = np.concatenate(all_original, axis=0)
     reconstructed_images = np.concatenate(all_reconstructions, axis=0)
     os.makedirs(output_dir, exist_ok=True)
-    csv_path = os.path.join(output_dir, "mnist_clean_latents.csv")
-    df = pd.DataFrame(latent)
-    df['labels'] = labels
-    df.to_csv(csv_path, index=False)
     npz_path = os.path.join(output_dir, "mnist_clean_complete.npz")
     np.savez(
         npz_path,
@@ -394,7 +386,6 @@ def process_clean_mnist(
         original_images=original_images,
         reconstructed_images=reconstructed_images
     )
-    print(f"Saved clean MNIST latents to {csv_path}")
     print(f"Saved clean MNIST complete data to {npz_path}")
     pca_plot_path = os.path.join(output_dir, "mnist_clean_latent_pca.png")
     visualize_latents(latent, labels, pca_plot_path)
