@@ -507,7 +507,6 @@ if __name__ == "__main__":
     model_path = "/kaggle/input/invi_mnist_2_noise/pytorch/default/2/MNIST Model State.pth"
     base_data_dir = "/kaggle/input/purification/medmnist/mnist"  # or your actual data directory path
     output_dir = "/kaggle/working/output"
-    
+    process_clean_mnist(model_path, output_dir)
     process_all_attacks(model_path, base_data_dir, output_dir)
     # Also process clean MNIST test set
-    process_clean_mnist(model_path, output_dir)
