@@ -404,6 +404,104 @@ def quick_inference_example():
 # if __name__ == "__main__":
 #     quick_inference_example()
 
+
+# New function: process_clean_mnist
+def process_clean_mnist(
+    model_path,
+    output_dir="adversarial_mnist_results",
+    batch_size=126,
+    device='cpu'
+):
+    """
+    Process the standard (clean) MNIST test set, extract latents and reconstructions, and save results.
+    """
+    print("Processing clean MNIST test set...")
+    # Import torchvision only inside the function to minimize dependencies
+    try:
+        import torchvision
+        from torchvision import transforms
+    except ImportError as e:
+        print("torchvision not installed. Cannot process clean MNIST.")
+        return
+
+    # 1. Load MNIST test set with normalization to [-1, 1]
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Lambda(lambda x: x * 2 - 1)
+    ])
+    mnist_test = torchvision.datasets.MNIST(
+        root="./mnist_data",
+        train=False,
+        download=True,
+        transform=transform
+    )
+    dataloader = DataLoader(
+        mnist_test,
+        batch_size=batch_size,
+        shuffle=False,
+        drop_last=False
+    )
+
+    # 2. Load pre-trained model (same as in extract_latents_and_reconstructions)
+    print(f"Loading pre-trained MNIST Topological Autoencoder from {model_path}...")
+    model = TopologicallyRegularizedAutoencoder(
+        autoencoder_model='DeepAE',
+        lam=0.5002972000959738,
+        toposig_kwargs={'match_edges': 'symmetric'}
+    )
+    state_dict = torch.load(model_path, map_location=device)
+    model.load_state_dict(state_dict)
+    model.eval()
+    if device == 'cuda':
+        model = model.cuda()
+
+    # 3. Extract latents, labels, reconstructions
+    print("Extracting latent representations and reconstructions for clean MNIST...")
+    all_latents = []
+    all_labels = []
+    all_original = []
+    all_reconstructions = []
+    with torch.no_grad():
+        for images, labels in dataloader:
+            if device == 'cuda':
+                images = images.cuda()
+            latents = model.encode(images)
+            reconst = model.decode(latents)
+            all_latents.append(latents.detach().cpu().numpy())
+            all_labels.append(labels.detach().cpu().numpy())
+            all_original.append(images.detach().cpu().numpy())
+            all_reconstructions.append(reconst.detach().cpu().numpy())
+    latent = np.concatenate(all_latents, axis=0)
+    labels = np.concatenate(all_labels, axis=0)
+    original_images = np.concatenate(all_original, axis=0)
+    reconstructed_images = np.concatenate(all_reconstructions, axis=0)
+
+    print(f"Latent shape: {latent.shape}, Labels shape: {labels.shape}")
+    print(f"Original images shape: {original_images.shape}, Reconstructed images shape: {reconstructed_images.shape}")
+
+    # 4. Save results
+    os.makedirs(output_dir, exist_ok=True)
+    csv_path = os.path.join(output_dir, "mnist_clean_latents.csv")
+    df = pd.DataFrame(latent)
+    df['labels'] = labels
+    df.to_csv(csv_path, index=False)
+    npz_path = os.path.join(output_dir, "mnist_clean_complete.npz")
+    np.savez(
+        npz_path,
+        latents=latent,
+        labels=labels,
+        original_images=original_images,
+        reconstructed_images=reconstructed_images
+    )
+    print(f"Saved clean MNIST latents to {csv_path}")
+    print(f"Saved clean MNIST complete data to {npz_path}")
+
+    # 5. Visualize latent space with PCA
+    pca_plot_path = os.path.join(output_dir, "mnist_clean_latent_pca.png")
+    visualize_latents(latent, labels, pca_plot_path)
+    print(f"Saved clean MNIST PCA latent visualization to {pca_plot_path}")
+
+
 if __name__ == "__main__":
 
     model_path = "/kaggle/input/invi_mnist_2_noise/pytorch/default/2/MNIST Model State.pth"
@@ -411,3 +509,5 @@ if __name__ == "__main__":
     output_dir = "/kaggle/working/output"
     
     process_all_attacks(model_path, base_data_dir, output_dir)
+    # Also process clean MNIST test set
+    process_clean_mnist(model_path, output_dir)
