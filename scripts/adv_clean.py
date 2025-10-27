@@ -9,6 +9,63 @@ from pathlib import Path
 import pandas as pd
 from torch import nn
 from torch.utils.data import DataLoader
+class DeepAE(AutoencoderModel):
+    """1000-500-250-2-250-500-1000."""
+    def __init__(self, input_dims=(1, 28, 28)):
+        super().__init__()
+        self.input_dims = input_dims
+        n_input_dims = np.prod(input_dims)
+        self.encoder = nn.Sequential(
+            View((-1, n_input_dims)),
+            nn.Linear(n_input_dims, 1000),
+            nn.ReLU(True),
+            nn.BatchNorm1d(1000),
+            nn.Linear(1000, 500),
+            nn.ReLU(True),
+            nn.BatchNorm1d(500),
+            nn.Linear(500, 250),
+            nn.ReLU(True),
+            nn.BatchNorm1d(250),
+            nn.Linear(250, 2) # latent dim
+        )
+        self.decoder = nn.Sequential(
+            nn.Linear(2, 250), # latent dim
+            nn.ReLU(True),
+            nn.BatchNorm1d(250),
+            nn.Linear(250, 500),
+            nn.ReLU(True),
+            nn.BatchNorm1d(500),
+            nn.Linear(500, 1000),
+            nn.ReLU(True),
+            nn.BatchNorm1d(1000),
+            nn.Linear(1000, n_input_dims),
+            View((-1,) + tuple(input_dims)),
+            nn.Tanh()
+        )
+        self.reconst_error = nn.MSELoss()
+
+    def encode(self, x):
+        """Compute latent representation using convolutional autoencoder."""
+        return self.encoder(x)
+
+    def decode(self, z):
+        """Compute reconstruction using convolutional autoencoder."""
+        return self.decoder(z)
+
+    def forward(self, x):
+        """Apply autoencoder to batch of input images.
+
+        Args:
+            x: Batch of images with shape [bs x channels x n_row x n_col]
+
+        Returns:
+            tuple(reconstruction_error, dict(other errors))
+
+        """
+        latent = self.encode(x)
+        x_reconst = self.decode(latent)
+        reconst_error = self.reconst_error(x, x_reconst)
+        return reconst_error, {'reconstruction_error': reconst_error}
 
 # Autoencoder definition (same as training)
 class Autoencoder(nn.Module):
@@ -118,8 +175,8 @@ def extract_latents_and_reconstructions(
     batch_size=126,
     device='cpu'
 ):
-    print(f"Loading pre-trained Autoencoder...")
-    model = Autoencoder()
+    print(f"Loading pre-trained DeepAE Autoencoder...")
+    model = DeepAE(input_dims=(1, 28, 28))
     state_dict = torch.load(model_path, map_location=device)
     model.load_state_dict(state_dict)
     model.eval()
@@ -261,8 +318,8 @@ def process_clean_mnist(
         transform=transform
     )
     dataloader = DataLoader(mnist_test, batch_size=batch_size, shuffle=False, drop_last=False)
-    print(f"Loading pre-trained Autoencoder from {model_path}...")
-    model = Autoencoder()
+    print(f"Loading pre-trained DeepAE Autoencoder from {model_path}...")
+    model = DeepAE(input_dims=(1, 28, 28))
     state_dict = torch.load(model_path, map_location=device)
     model.load_state_dict(state_dict)
     model.eval()
@@ -311,9 +368,9 @@ if __name__ == "__main__":
     base_data_dir = "/kaggle/input/purification/medmnist/mnist"  # or your actual data directory path
     output_dir = "./output"
 
-    # If model file doesn't exist, train Autoencoder first
+    # If model file doesn't exist, train DeepAE first
     if not os.path.exists(model_path):
-        print("No trained Autoencoder found. Training on clean MNIST...")
+        print("No trained DeepAE found. Training on clean MNIST...")
         from torchvision import datasets, transforms
         from torch import optim
         transform = transforms.Compose([
@@ -323,20 +380,21 @@ if __name__ == "__main__":
         train_data = datasets.MNIST(root='./mnist_data', train=True, download=True, transform=transform)
         train_loader = DataLoader(train_data, batch_size=128, shuffle=True)
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        model = Autoencoder().to(device)
+        model = DeepAE(input_dims=(1, 28, 28)).to(device)
         criterion = nn.MSELoss()
         optimizer = optim.Adam(model.parameters(), lr=1e-3)
         for epoch in range(10):
             for imgs, _ in train_loader:
                 imgs = imgs.to(device)
                 recon = model(imgs)
-                loss = criterion(recon, imgs)
+                # DeepAE returns (reconst_error, dict)
+                loss = recon[0]
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
             print(f"Epoch {epoch+1}, Loss: {loss.item():.4f}")
         torch.save(model.state_dict(), model_path)
-        print(f"Trained Autoencoder saved to {model_path}")
+        print(f"Trained DeepAE saved to {model_path}")
 
     process_clean_mnist(model_path, output_dir)
     process_all_attacks(model_path, base_data_dir, output_dir)
