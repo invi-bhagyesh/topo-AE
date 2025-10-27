@@ -307,9 +307,36 @@ def process_clean_mnist(
     print(f"Saved clean MNIST PCA latent visualization to {pca_plot_path}")
 
 if __name__ == "__main__":
-    # Example usage paths (modify as needed)
     model_path = "clean_autoencoder.pth"
-    base_data_dir = "./adversarial_mnist"  # Replace with your adversarial data root
+    base_data_dir = "./adversarial_mnist"
     output_dir = "./output"
+
+    # If model file doesn't exist, train Autoencoder first
+    if not os.path.exists(model_path):
+        print("No trained Autoencoder found. Training on clean MNIST...")
+        from torchvision import datasets, transforms
+        from torch import optim
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Lambda(lambda x: x * 2 - 1)
+        ])
+        train_data = datasets.MNIST(root='./mnist_data', train=True, download=True, transform=transform)
+        train_loader = DataLoader(train_data, batch_size=128, shuffle=True)
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        model = Autoencoder().to(device)
+        criterion = nn.MSELoss()
+        optimizer = optim.Adam(model.parameters(), lr=1e-3)
+        for epoch in range(10):
+            for imgs, _ in train_loader:
+                imgs = imgs.to(device)
+                recon = model(imgs)
+                loss = criterion(recon, imgs)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+            print(f"Epoch {epoch+1}, Loss: {loss.item():.4f}")
+        torch.save(model.state_dict(), model_path)
+        print(f"Trained Autoencoder saved to {model_path}")
+
     process_clean_mnist(model_path, output_dir)
     process_all_attacks(model_path, base_data_dir, output_dir)
