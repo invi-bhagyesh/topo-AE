@@ -239,13 +239,19 @@ def extract_latents_and_reconstructions(
     print(f"Creating dataset from {data_dir}...")
     dataset = AdversarialMNISTDataset(data_dir, attack_type)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=False)
-    print("Extracting latent representations using get_space...")
-    latent, labels = get_space(
-        model,
-        dataloader,
-        mode='latent',
-        device=device
-    )
+    print("Extracting latent representations manually...")
+    all_latents = []
+    all_labels = []
+    model.eval()
+    with torch.no_grad():
+        for images, labels_batch in dataloader:
+            if device == 'cuda':
+                images = images.cuda()
+            latents = model.encode(images)
+            all_latents.append(latents.detach().cpu().numpy())
+            all_labels.append(labels_batch)
+    latent = np.concatenate(all_latents, axis=0)
+    labels = np.concatenate(all_labels, axis=0)
     print(f"Latent space shape: {latent.shape}")
     print(f"Labels shape: {labels.shape}")
     # 4. Extract reconstructed images
