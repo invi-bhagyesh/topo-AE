@@ -2,10 +2,9 @@
 This repository provides the official implementation of TopoReformer from the
 following paper.
 
-**TopoReformer: Topological Purification for Vision and OCR Robustness**  
+**TopoReformer: Mitigating Adversarial Attacks Using Topological Purification in OCR Models**  
 Bhagyesh Kumar*, A S Aravinthakashan*, Akshat Satyanarayan*, Ishaan Gakhar, Ujjwal Verma  
-Paper:  
-
+---
 ![TopoReformer](assets/toporeformer.png)
 
 Run
