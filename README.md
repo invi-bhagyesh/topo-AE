@@ -6,7 +6,7 @@ following paper.
 Bhagyesh Kumar*, A S Aravinthakashan*, Akshat Satyanarayan*, Ishaan Gakhar, Ujjwal Verma  
 
 ---
-![TopoReformer](assets/toporeformer.png)
+![TopoReformer](assets/topo.png)
 
 Run
 ```bash
