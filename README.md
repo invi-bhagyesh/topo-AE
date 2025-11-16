@@ -1,4 +1,4 @@
-# TopoReformer  
+# TopoReformer (AAAI 2026)
 This repository provides the official implementation of TopoReformer from the
 following paper.
 
