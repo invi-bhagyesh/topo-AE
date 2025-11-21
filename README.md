@@ -5,6 +5,8 @@ following paper.
 **TopoReformer: Mitigating Adversarial Attacks Using Topological Purification in OCR Models**  
 Bhagyesh Kumar*, A S Aravinthakashan*, Akshat Satyanarayan*, Ishaan Gakhar, Ujjwal Verma  
 
+Paper Link: [arxiv](https://arxiv.org/abs/2511.15807)
+
 ---
 ![TopoReformer](assets/topo.png)
 
