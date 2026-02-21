@@ -4,7 +4,7 @@ This repository provides the official implementation of TopoReformer, which was 
 **TopoReformer: Mitigating Adversarial Attacks Using Topological Purification in OCR Models**  
 > Bhagyesh Kumar†, [A S Aravinthakashan](https://www.linkedin.com/in/aravinthakshan/)†, [Akshat Satyanarayan](https://www.linkedin.com/in/akshat-satyanarayan-111410378/?originalSubdomain=in)†, [Ishaan Gakhar](https://scholar.google.com/citations?user=z1DCdjAAAAAJ), [Ujjwal Verma](https://scholar.google.com/citations?user=XSzIFIgAAAAJ&hl=en)  
 
-[![arXiv](https://img.shields.io/badge/arXiv-2601.21794-9acd32.svg)](https://arxiv.org/abs/2511.15807) [![Paper page](https://huggingface.co/datasets/huggingface/badges/resolve/main/paper-page-sm.svg)]([https://huggingface.co/papers](https://huggingface.co/papers/2511.15807))
+[![arXiv](https://img.shields.io/badge/arXiv-2601.21794-9acd32.svg)](https://arxiv.org/abs/2511.15807) [![Paper page](https://huggingface.co/datasets/huggingface/badges/resolve/main/paper-page-sm.svg)]([https://huggingface.co/papers/2511.15807])
 
 ---
 ![TopoReformer](assets/topo.png)
