@@ -1,11 +1,10 @@
-# TopoReformer (AAAI 2026)
-This repository provides the official implementation of TopoReformer from the
-following paper.
+# TopoReformer [AAAI 2026]
+This repository provides the official implementation of TopoReformer, which was accepted as a workshop paper at AAAI 2026.
 
 **TopoReformer: Mitigating Adversarial Attacks Using Topological Purification in OCR Models**  
-Bhagyesh Kumar*, A S Aravinthakashan*, Akshat Satyanarayan*, Ishaan Gakhar, Ujjwal Verma  
+> Bhagyesh Kumar†, [A S Aravinthakashan](https://www.linkedin.com/in/aravinthakshan/)†, [Akshat Satyanarayan](https://www.linkedin.com/in/akshat-satyanarayan-111410378/?originalSubdomain=in)†, [Ishaan Gakhar](https://scholar.google.com/citations?user=z1DCdjAAAAAJ), [Ujjwal Verma](https://scholar.google.com/citations?user=XSzIFIgAAAAJ&hl=en)  
 
-Paper Link: [arxiv](https://arxiv.org/abs/2511.15807)
+[![arXiv](https://img.shields.io/badge/arXiv-2601.21794-9acd32.svg)](https://arxiv.org/abs/2511.15807)
 
 ---
 ![TopoReformer](assets/topo.png)
